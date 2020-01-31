@@ -7,7 +7,7 @@
   "license": "MIT",
   "scripts": {
     "dev-server": "nodemon",
-    "build": "tsc --project tsconfig.json",
+    "build-server": "tsc --project tsconfig.json",
     "dev-client": "cd client && yarn start",
     "start": "node server.js",
     "dev": "concurrently \"yarn dev-server\" \"yarn dev-client\"",
