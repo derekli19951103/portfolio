@@ -1,0 +1,25 @@
+#Me {
+  background: #1e2023;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: white;
+  text-transform: uppercase;
+}
+
+#particles canvas {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+
+#Me h1 {
+  font-family: "Roboto", sans-serif;
+  letter-spacing: 15px;
+}
+#Me h4 {
+  font-family: "Roboto", sans-serif;
+  padding-right: 20px;
+}

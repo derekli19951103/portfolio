@@ -1,0 +1,130 @@
+:root {
+  --arrow-height: 2px;
+  --arrow-width: 30px;
+}
+
+#Projects {
+  background: #1e2023;
+  width: auto;
+  min-height: 100vh;
+  margin-left: auto;
+  margin-right: auto;
+  display: block;
+  color: white;
+  padding-left: 6%;
+  padding-right: 6%;
+}
+
+#projects_header {
+  padding-top: 100px;
+  padding-bottom: 70px;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+#projects_header h1 {
+  font-family: "Yantramanav", sans-serif;
+  letter-spacing: 15px;
+}
+
+.ProjectDetail,
+.ProjectDetailblock {
+  max-height: 0;
+  width: 100%;
+  transition: max-height 1s ease;
+  overflow: hidden;
+  padding-left: 10%;
+  padding-right: 10%;
+  background: linear-gradient(black 1px, #141618 15px);
+}
+
+.ProjectDetailblock {
+  max-height: 3000px;
+}
+
+.carousel {
+  position: relative;
+  padding-bottom: 20px;
+}
+
+.arrow-icon {
+  background-color: transparent;
+  height: 2em;
+  width: 100%;
+  display: block;
+  margin: 0em auto;
+  position: relative;
+  cursor: pointer;
+}
+
+.left-bar {
+  position: absolute;
+  background-color: transparent;
+  top: 40%;
+  left: 48%;
+  width: var(--arrow-width);
+  height: var(--arrow-height);
+  display: block;
+  transform: rotate(35deg);
+  float: right;
+  border-radius: 2px;
+}
+.left-bar:after {
+  content: "";
+  background-color: white;
+  width: var(--arrow-width);
+  height: var(--arrow-height);
+  display: block;
+  float: right;
+  border-radius: 1.5px 2.5px 2.5px 1.5px;
+  transition: all 1s cubic-bezier(0.25, 1.7, 0.35, 0.8);
+  transition-delay: 1s;
+  z-index: -1;
+}
+
+.right-bar {
+  position: absolute;
+  background-color: transparent;
+  top: 40%;
+  left: calc(48% + 24px);
+  width: var(--arrow-width);
+  height: var(--arrow-height);
+  display: block;
+  transform: rotate(-35deg);
+  float: right;
+  border-radius: 2px;
+}
+.right-bar:after {
+  content: "";
+  background-color: white;
+  width: var(--arrow-width);
+  height: var(--arrow-height);
+  display: block;
+  float: right;
+  border-radius: 2.5px 1.5px 1.5px 2.5px;
+  transition: all 1s cubic-bezier(0.25, 1.7, 0.35, 0.8);
+  transition-delay: 1s;
+  z-index: -1;
+}
+
+.open .left-bar:after {
+  transform-origin: center center;
+  transform: rotate(-70deg);
+}
+.open .right-bar:after {
+  transform-origin: center center;
+  transform: rotate(70deg);
+}
+
+@media screen and (max-width: 767px) {
+  #Projects {
+    padding-left: 3%;
+    padding-right: 1%;
+  }
+  .left-bar {
+    left: 42%;
+  }
+  .right-bar {
+    left: calc(42% + 24px);
+  }
+}

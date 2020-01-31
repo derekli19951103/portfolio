@@ -1,0 +1,64 @@
+.left,.right{
+    min-height: 100%;
+    color: white;
+    text-align: center;
+}
+
+.left{
+    position: relative;
+    background: linear-gradient(145deg, #282c30,black);
+}
+
+.right{
+    position: relative;
+    background: linear-gradient(-145deg, #282c30,black);
+}
+  
+.left h1{
+    position: relative;
+    top:40%;
+    background: -webkit-linear-gradient(180deg,#333, #eee);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.right h1{
+    position: relative;
+    top:40%;
+    background: -webkit-linear-gradient(180deg,#eee,#333);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.ui.celled.grid{
+    box-shadow: 0px 0px 0px 0px #141618 !important;
+}
+  
+.ui.celled.grid > .row {
+    box-shadow: 0px 0px 0px 0px #141618 !important;
+}
+
+.ui.celled.grid > .column:not(.row),
+.ui.celled.grid > .row > .column {
+    box-shadow: 0px 0px 0px 0px #141618 !important;
+}
+
+.ui.basic.modal {
+    transition: all 1s ease;
+}
+
+
+@media screen and (max-width: 767px) {
+    .left,.right{
+        min-height: 0;
+    }
+    .left,.right{
+        background: transparent
+    }
+    .left h1,.right h1{
+        top:10%;
+        background: white;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+}

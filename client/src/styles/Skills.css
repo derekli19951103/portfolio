@@ -1,0 +1,66 @@
+#Skills{
+    background: linear-gradient(135deg, #cc95c0, #dbd4b4, #7aa1d2,#dbd4b4,#cc95c0);
+    background-size: 400% 400%;
+	-webkit-animation: Gradient 15s ease infinite;
+	-moz-animation: Gradient 15s ease infinite;
+	animation: Gradient 15s ease infinite;
+    width:auto;
+    height: 100vh;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    padding-top: 100px;
+    padding-bottom: 100px;
+    padding-left: 10%;
+	padding-right: 10%;
+	transform: translateZ(0);
+}
+
+.gridSkill{
+    width:90vw;
+}
+
+@-webkit-keyframes Gradient {
+	0% {
+		background-position: 0% 50%
+	}
+	50% {
+		background-position: 100% 50%
+	}
+	100% {
+		background-position: 0% 50%
+	}
+}
+
+@-moz-keyframes Gradient {
+	0% {
+		background-position: 0% 50%
+	}
+	50% {
+		background-position: 100% 50%
+	}
+	100% {
+		background-position: 0% 50%
+	}
+}
+
+@keyframes Gradient {
+	0% {
+		background-position: 0% 50%
+	}
+	50% {
+		background-position: 100% 50%
+	}
+	100% {
+		background-position: 0% 50%
+	}
+}
+
+@media screen and (max-width: 767px) {
+    #Skills{
+        height: auto;
+    }
+}
