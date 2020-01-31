@@ -9,19 +9,21 @@
     "dev-server": "nodemon",
     "build": "tsc --project tsconfig.json",
     "dev-client": "cd client && yarn start",
-    "start": "node dist/server.js",
+    "start": "node server.js",
     "dev": "concurrently \"yarn dev-server\" \"yarn dev-client\"",
     "heroku-postbuild": "NPM_CONFIG_PRODUCTION=false npm install --dev --prefix client && npm run build --prefix client"
   },
   "dependencies": {
     "koa": "^2.11.0",
     "koa-router": "^8.0.6",
-    "koa-send": "^5.0.0"
+    "koa-send": "^5.0.0",
+    "koa-static": "^5.0.0"
   },
   "devDependencies": {
     "@types/koa": "^2.11.0",
     "@types/koa-router": "^7.4.0",
     "@types/koa-send": "^4.1.2",
+    "@types/koa-static": "^4.0.1",
     "concurrently": "^5.1.0",
     "nodemon": "^2.0.2",
     "ts-node": "^8.6.2",
