@@ -10,6 +10,6 @@ router.get("/*", async (ctx) => {
     await send(ctx, path.join(__dirname, "client", "build", "index.html"));
 });
 app.use(router.routes());
-app.listen(3000);
-console.log("Server running on port 3000");
+app.listen(4000);
+console.log("Server running on port 4000");
 //# sourceMappingURL=server.js.map
