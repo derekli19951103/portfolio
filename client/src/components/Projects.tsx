@@ -4,7 +4,7 @@ import { PROJECTS } from "../data";
 import "../styles/carousel.css";
 import "../styles/Projects.css";
 import { Card } from "./Card";
-import Detail from "./Detail";
+import { Detail } from "./Detail";
 import { useLanguage } from "../hooks/language";
 
 export const Projects = () => {

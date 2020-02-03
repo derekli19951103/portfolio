@@ -28,7 +28,7 @@ class Lightbox extends React.Component {
   }
 }
 
-class Detail extends React.Component {
+export class Detail extends React.Component {
   render() {
     const { details } = this.props;
     const unpadded = {
@@ -109,5 +109,3 @@ class Detail extends React.Component {
     );
   }
 }
-
-export default Detail;
