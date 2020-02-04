@@ -56,7 +56,7 @@ export const Experience = () => {
                 paddingTop: window.innerWidth < 767 ? "5px" : "0px"
               }}
             >
-              {lang == "en" ? "Birthday" : "生日"}
+              {lang === "en" ? "Birthday" : "生日"}
             </p>
           </div>
         </div>

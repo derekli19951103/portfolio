@@ -12,7 +12,7 @@ export const Contact = () => {
         <div id={"info"}>
           <div className="btn-cont">
             <a className="btn" href={"mailto:" + CONTACT.email}>
-              {lang == "en" ? "Email Me" : "电邮联系"}
+              {lang === "en" ? "Email Me" : "电邮联系"}
               <span className="line-1"></span>
               <span className="line-2"></span>
               <span className="line-3"></span>
@@ -21,7 +21,7 @@ export const Contact = () => {
           </div>
           <div className="btn-cont">
             <a className="btn" href={"tel:" + CONTACT.tel}>
-              {lang == "en" ? "Call Me" : "电话联系"}
+              {lang === "en" ? "Call Me" : "电话联系"}
               <span className="line-1"></span>
               <span className="line-2"></span>
               <span className="line-3"></span>

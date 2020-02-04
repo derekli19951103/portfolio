@@ -1,14 +1,13 @@
 import React, { useEffect } from "react";
 import scrollToComponent from "react-scroll-to-component";
-import { MENU } from "../data";
 import { About } from "../components/About";
-import "../styles/Landing.css";
-import { useLanguage } from "../hooks/language";
-import { Me } from "../components/Me";
-import { Experience } from "../components/Experience";
 import { Contact } from "../components/Contact";
-import { Skills } from "../components/Skills";
+import { Experience } from "../components/Experience";
+import { Me } from "../components/Me";
 import { Projects } from "../components/Projects";
+import { Skills } from "../components/Skills";
+import { MENU } from "../data";
+import "../styles/Landing.css";
 
 export const Landing = () => {
   let MeSection: HTMLElement;
