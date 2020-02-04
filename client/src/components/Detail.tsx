@@ -22,7 +22,7 @@ const Lightbox = (props: { src: string }) => {
   );
 };
 
-export const Detail = (props: {
+const Detail = (props: {
   details: {
     desc: string;
     pic: string;
@@ -105,3 +105,5 @@ export const Detail = (props: {
     </div>
   );
 };
+
+export default Detail;

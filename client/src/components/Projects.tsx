@@ -1,13 +1,13 @@
 import React, { useState } from "react";
 import { Carousel } from "react-responsive-carousel";
 import { PROJECTS } from "../data";
+import { useLanguage } from "../hooks/language";
 import "../styles/carousel.css";
 import "../styles/Projects.css";
-import { Card } from "./Card";
-import { Detail } from "./Detail";
-import { useLanguage } from "../hooks/language";
+import Card from "./Card";
+import Detail from "./Detail";
 
-export const Projects = () => {
+const Projects = () => {
   const learn_more = { en: "Learn More", zh: "了解更多" };
   const [selected, setSelected] = useState(PROJECTS.projects[0]);
   const [clicked, setClicked] = useState(false);
@@ -86,3 +86,5 @@ export const Projects = () => {
     </div>
   );
 };
+
+export default Projects;

@@ -1,15 +1,15 @@
 import React, { useEffect } from "react";
 import scrollToComponent from "react-scroll-to-component";
-import { About } from "../components/About";
-import { Contact } from "../components/Contact";
-import { Experience } from "../components/Experience";
-import { Me } from "../components/Me";
-import { Projects } from "../components/Projects";
-import { Skills } from "../components/Skills";
+import About from "../components/About";
+import Contact from "../components/Contact";
+import Experience from "../components/Experience";
+import Me from "../components/Me";
+import Projects from "../components/Projects";
+import Skills from "../components/Skills";
 import { MENU } from "../data";
 import "../styles/Landing.css";
 
-export const Landing = () => {
+const Landing = () => {
   let MeSection: HTMLElement;
   let AboutSection: HTMLElement;
   let ExperienceSection: HTMLElement;
@@ -161,3 +161,5 @@ export const Landing = () => {
     </div>
   );
 };
+
+export default Landing;

@@ -4,7 +4,7 @@ import head from "../samples/profilepic.jpg";
 import { ABOUT } from "../data";
 import "../styles/About.css";
 
-export const About = () => {
+const About = () => {
   return (
     <div id={"About"}>
       <span>
@@ -16,3 +16,5 @@ export const About = () => {
     </div>
   );
 };
+
+export default About;

@@ -4,7 +4,7 @@ import { EXP } from "../data";
 import { useLanguage } from "../hooks/language";
 import "../styles/Experience.css";
 
-export const Experience = () => {
+const Experience = () => {
   const EVENTS = EXP.event;
   const lang = useLanguage();
 
@@ -64,3 +64,5 @@ export const Experience = () => {
     </div>
   );
 };
+
+export default Experience;

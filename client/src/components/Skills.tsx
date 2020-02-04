@@ -3,7 +3,7 @@ import { Text, TitleBar, Window } from "react-desktop/macOs";
 import { Grid } from "semantic-ui-react";
 import "../styles/Skills.css";
 
-export const Skills = () => {
+const Skills = () => {
   return (
     <div id={"Skills"}>
       <Grid columns={3} stackable centered stretched className={"gridSkill"}>
@@ -155,3 +155,5 @@ export const Skills = () => {
     </div>
   );
 };
+
+export default Skills;

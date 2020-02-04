@@ -11,7 +11,7 @@ interface IProp {
   mask: string;
 }
 
-export const Card = (props: IProp) => {
+const Card = (props: IProp) => {
   const { picture, toptitle, midtitle, lowtitle, desc, href, mask } = props;
   const alphaStyle = {
     fill: "white"
@@ -69,3 +69,5 @@ export const Card = (props: IProp) => {
     </div>
   );
 };
+
+export default Card;

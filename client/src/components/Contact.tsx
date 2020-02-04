@@ -4,7 +4,7 @@ import { useLanguage } from "../hooks/language";
 import "../styles/Contact.css";
 import "../styles/btn-cont.css";
 
-export const Contact = () => {
+const Contact = () => {
   const lang = useLanguage();
   return (
     <div id={"Contact"}>
@@ -42,3 +42,5 @@ export const Contact = () => {
     </div>
   );
 };
+
+export default Contact;

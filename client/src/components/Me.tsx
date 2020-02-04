@@ -3,7 +3,7 @@ import "../styles/Me.css";
 import { BRIEF } from "../data";
 import Particles from "react-particles-js";
 
-export const Me = () => {
+const Me = () => {
   return (
     <div id={"particles"}>
       <Particles
@@ -60,3 +60,5 @@ export const Me = () => {
     </div>
   );
 };
+
+export default Me;
