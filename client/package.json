@@ -2,7 +2,6 @@
   "name": "portfolio",
   "version": "1.0.0",
   "main": "index.js",
-  "repository": "git@github.com:derekli19951103/portfolio.git",
   "author": "derekli19951103 <derekli1995@outlook.com>",
   "license": "MIT",
   "private": true,
