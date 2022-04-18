@@ -1,29 +1,25 @@
-import { LegacyRef, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AmbientLight,
-  BoxGeometry,
+  BoxHelper,
   CapsuleGeometry,
   Color,
-  Loader,
+  Group,
   Mesh,
-  MeshBasicMaterial,
-  PerspectiveCamera,
+  MeshPhongMaterial,
   PointLight,
-  Scene,
   ShaderMaterial,
   SphereGeometry,
-  sRGBEncoding,
   TorusKnotGeometry,
   Vector3,
-  WebGLRenderer,
 } from "three";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import ViewGL from "../engine/ViewGL";
+import Viewport from "../engine/Viewport";
 
 export const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [gl, setGl] = useState<ViewGL>();
+  const [gl, setGl] = useState<Viewport>();
 
   /**
    * Add 3d cube
@@ -64,14 +60,16 @@ export const Canvas = () => {
 
       const torusKnot = new Mesh(torus, material);
 
-      torusKnot.position.y = -4;
+      torusKnot.position.z = -4;
 
-      const g = new BoxGeometry();
-      const m = new MeshBasicMaterial({ color: 0x00ff00 });
-      const c = new Mesh(g, m);
-      gl.add(c, cube, sphereMesh, torusKnot);
-
-      gl.camera.position.set(0, 0, 10);
+      const group = new Group();
+      group.add(cube, sphereMesh);
+      const box = new BoxHelper(group, 0xffff00);
+      box.updateMatrixWorld(true);
+      const boxGroup = new Group();
+      boxGroup.add(group, box);
+      gl.add(boxGroup);
+      gl.add(torusKnot);
 
       // let pointLight = new PointLight(0xdddddd);
       // pointLight.position.set(-5, -3, 3);
@@ -93,15 +91,25 @@ export const Canvas = () => {
       loader.setDRACOLoader(dracoLoader);
 
       loader.load("/models/LCSHF30.glb", (gltf) => {
-        gltf.scene.position.set(0, 4, 0);
+        gltf.scene.onBeforeRender = (
+          renderer,
+          scene,
+          camera,
+          geometry,
+          material,
+          group
+        ) => {
+          material = new MeshPhongMaterial({});
+        };
+        const box = new BoxHelper(gltf.scene, 0xffff00);
+        const boxGroup = new Group();
+        boxGroup.add(gltf.scene, box);
+        gl.add(boxGroup);
 
-        gl.add(gltf.scene);
-        gl.camera.position.set(0, 0, 10);
-
-        const light = new PointLight(0xffffff, 1, 100);
-        light.position.set(10, 10, 10);
-        const ambientLight = new AmbientLight();
-        gl.add(light, ambientLight);
+        // const light = new PointLight(0xffffff, 1, 100);
+        // light.position.set(0, 10, 0);
+        // const ambientLight = new AmbientLight();
+        // gl.add(light, ambientLight);
 
         gl.render();
       });
@@ -131,7 +139,7 @@ export const Canvas = () => {
 
   useEffect(() => {
     if (canvasRef.current) {
-      setGl(new ViewGL(canvasRef.current));
+      setGl(new Viewport(canvasRef.current));
     }
   }, [canvasRef]);
 
