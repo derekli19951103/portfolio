@@ -1,5 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import { Color, Mesh, ShaderMaterial, TorusKnotGeometry, Vector3 } from "three";
+import {
+  Color,
+  CubeCamera,
+  LinearMipmapLinearFilter,
+  Mesh,
+  MeshBasicMaterial,
+  MeshLambertMaterial,
+  MeshPhongMaterial,
+  ShaderMaterial,
+  SphereGeometry,
+  TorusKnotGeometry,
+  Vector3,
+  WebGLCubeRenderTarget,
+} from "three";
 import TNode from "../engine/TNode";
 import Viewport from "../engine/Viewport";
 
@@ -33,7 +46,33 @@ export const Canvas = () => {
 
       const mesh = new Mesh(geometry, material);
 
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+
       const node = new TNode(mesh);
+
+      gl.add(node);
+    }
+  };
+
+  const addNormalObj = () => {
+    if (gl) {
+      const cubeRenderTarget = new WebGLCubeRenderTarget(128, {
+        generateMipmaps: true,
+        minFilter: LinearMipmapLinearFilter,
+      });
+
+      // Create cube camera
+      const cubeCamera = new CubeCamera(1, 100000, cubeRenderTarget);
+      gl.scene.add(cubeCamera);
+
+      const geometry = new SphereGeometry(2, 32, 16);
+      const material = new MeshBasicMaterial({
+        envMap: cubeRenderTarget.texture,
+      });
+      const sphere = new Mesh(geometry, material);
+
+      const node = new TNode(sphere);
 
       gl.add(node);
     }
@@ -69,6 +108,9 @@ export const Canvas = () => {
       <nav className="nav" style={{ position: "absolute" }}>
         <button className="btn" onClick={addCustomShaderObj}>
           Add Custom Shader Obj
+        </button>
+        <button className="btn" onClick={addNormalObj}>
+          Add Normal Obj
         </button>
         <button className="btn" onClick={addGLB}>
           Add GLB

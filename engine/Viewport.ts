@@ -2,14 +2,20 @@ import {
   AmbientLight,
   Camera,
   Color,
+  DoubleSide,
   GridHelper,
   HemisphereLight,
+  Mesh,
+  MeshBasicMaterial,
   Object3D,
   PerspectiveCamera,
   Plane,
   Raycaster,
   Scene,
+  SphereBufferGeometry,
+  SpotLight,
   sRGBEncoding,
+  TextureLoader,
   Vector2,
   Vector3,
   WebGLRenderer,
@@ -70,9 +76,31 @@ export default class Viewport {
       });
     });
 
-    this.scene.background = new Color(255, 255, 255);
     const hemiLight = new HemisphereLight(0xffeeb1, 0x080820, 4);
     this.scene.add(hemiLight);
+    const light = new SpotLight(0xffa95c, 4);
+    light.position.set(-50, 50, 50);
+    light.castShadow = true;
+    light.shadow.bias = -0.0001;
+    light.shadow.mapSize.width = 1024 * 4;
+    light.shadow.mapSize.height = 1024 * 4;
+    this.scene.add(light);
+
+    const textureLoader = new TextureLoader();
+    const texture = textureLoader.load("/textures/sky.JPG");
+
+    const cubeGeo = new SphereBufferGeometry(300, 128, 128);
+
+    const sky = new Mesh(
+      cubeGeo,
+      new MeshBasicMaterial({
+        color: new Color(0xffffff),
+        map: texture,
+        side: DoubleSide,
+      })
+    );
+
+    this.scene.add(sky);
 
     this.grid = new GridHelper(200, 200);
     this.scene.add(this.grid);
@@ -110,6 +138,7 @@ export default class Viewport {
     });
 
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.shadowMap.enabled = true;
 
     this.renderer.render(this.scene, this.camera);
   }
@@ -146,6 +175,7 @@ export default class Viewport {
         }
       }
     });
+
     requestAnimationFrame(this.render.bind(this));
   }
 }
