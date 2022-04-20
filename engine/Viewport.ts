@@ -30,12 +30,7 @@ import TNode from "./TNode";
 export default class Viewport {
   scene: Scene;
   renderer: WebGLRenderer;
-  camera: Camera = new PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
-  );
+  camera: PerspectiveCamera;
   objects: Object3D[] = [];
   nodes: TNode[] = [];
   dragControls: DragControls;
@@ -56,6 +51,15 @@ export default class Viewport {
     });
 
     this.renderer.outputEncoding = sRGBEncoding;
+    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.shadowMap.enabled = true;
+
+    this.camera = new PerspectiveCamera(
+      75,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
 
     this.camera.position.set(5, 5, 5);
 
@@ -87,12 +91,12 @@ export default class Viewport {
     this.scene.add(light);
 
     this.scene.background = new CubeTextureLoader().load([
-      "/textures/sky/right.png",
-      "/textures/sky/left.png",
-      "/textures/sky/top.png",
-      "/textures/sky/bottom.png",
-      "/textures/sky/front.png",
-      "/textures/sky/back.png",
+      "/textures/sky/right.jpg",
+      "/textures/sky/left.jpg",
+      "/textures/sky/top.jpg",
+      "/textures/sky/bottom.jpg",
+      "/textures/sky/front.jpg",
+      "/textures/sky/back.jpg",
     ]);
 
     const textureLoader = new TextureLoader();
@@ -115,7 +119,7 @@ export default class Viewport {
     this.scene.add(this.grid, ground);
 
     this.orbitControls = new OrbitControls(this.camera, canvas);
-    this.orbitControls.maxPolarAngle = Math.PI / 2;
+
     this.dragControls = new DragControls(this.objects, this.camera, canvas);
 
     this.dragControls.addEventListener("dragstart", () => {
@@ -148,9 +152,13 @@ export default class Viewport {
     });
 
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.shadowMap.enabled = true;
 
-    this.renderer.render(this.scene, this.camera);
+    window.addEventListener("resize", () => {
+      this.camera.aspect = window.innerWidth / window.innerHeight;
+      this.camera.updateProjectionMatrix();
+
+      this.renderer.setSize(window.innerWidth, window.innerHeight);
+    });
   }
 
   add(...nodes: TNode[]) {
