@@ -1,14 +1,11 @@
 import { extname } from "path";
 import {
   Box3,
-  BoxBufferGeometry,
   BoxHelper,
   Group,
   LoadingManager,
-  Mesh,
   MeshBasicMaterial,
   Object3D,
-  Vector3,
 } from "three";
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -20,7 +17,8 @@ export default class TNode {
   children: TNode[] | undefined;
 
   boudingGroup: Group;
-  boundingBox: BoxHelper | undefined;
+  boundingBoxHelper: BoxHelper | undefined;
+  boundingBox: Box3 | undefined;
 
   private _isRayCasted: boolean = false;
   private _isHovered: boolean = false;
@@ -97,10 +95,12 @@ export default class TNode {
   private addBoundingBox() {
     if (this.object) {
       this.boudingGroup.add(this.object);
-      this.boundingBox = new BoxHelper(this.object);
-      this.boundingBox.material = this.hoverColor;
-      this.boundingBox.visible = false;
-      this.boudingGroup.add(this.boundingBox);
+      this.boundingBoxHelper = new BoxHelper(this.object);
+      this.boundingBoxHelper.material = this.hoverColor;
+      this.boundingBoxHelper.visible = false;
+
+      this.boundingBox = new Box3().setFromObject(this.object);
+      this.boudingGroup.add(this.boundingBoxHelper);
     }
   }
 
@@ -110,11 +110,11 @@ export default class TNode {
 
   set isHovered(hovered: boolean) {
     this._isHovered = hovered;
-    if (this.boundingBox) {
+    if (this.boundingBoxHelper) {
       if (hovered === true) {
-        this.boundingBox.visible = true;
+        this.boundingBoxHelper.visible = true;
       } else {
-        this.boundingBox.visible = false;
+        this.boundingBoxHelper.visible = false;
       }
     }
   }
@@ -125,11 +125,11 @@ export default class TNode {
 
   set isSelected(selected: boolean) {
     this._isSelected = selected;
-    if (this.boundingBox) {
+    if (this.boundingBoxHelper) {
       if (selected === true) {
-        this.boundingBox.material = this.selectedColor;
+        this.boundingBoxHelper.material = this.selectedColor;
       } else {
-        this.boundingBox.material = this.hoverColor;
+        this.boundingBoxHelper.material = this.hoverColor;
       }
     }
   }

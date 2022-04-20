@@ -1,24 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import {
   Color,
-  CubeCamera,
-  LinearMipmapLinearFilter,
   Mesh,
   MeshBasicMaterial,
-  MeshLambertMaterial,
-  MeshPhongMaterial,
   ShaderMaterial,
   SphereGeometry,
+  Texture,
   TorusKnotGeometry,
   Vector3,
-  WebGLCubeRenderTarget,
 } from "three";
 import TNode from "../engine/TNode";
 import Viewport from "../engine/Viewport";
+import { useViewports } from "../store/viewports";
 
 export const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [gl, setGl] = useState<Viewport>();
+  const { viewports, setViewports } = useViewports();
+  const gl = viewports.viewport1;
 
   const addCustomShaderObj = async () => {
     if (gl) {
@@ -57,22 +55,18 @@ export const Canvas = () => {
 
   const addNormalObj = () => {
     if (gl) {
-      const cubeRenderTarget = new WebGLCubeRenderTarget(128, {
-        generateMipmaps: true,
-        minFilter: LinearMipmapLinearFilter,
-      });
-
-      // Create cube camera
-      const cubeCamera = new CubeCamera(1, 100000, cubeRenderTarget);
-      gl.scene.add(cubeCamera);
-
       const geometry = new SphereGeometry(2, 32, 16);
       const material = new MeshBasicMaterial({
-        envMap: cubeRenderTarget.texture,
+        envMap: gl.scene.background as Texture,
       });
       const sphere = new Mesh(geometry, material);
 
       const node = new TNode(sphere);
+
+      const size = new Vector3();
+      node.boundingBox!.getSize(size);
+
+      node.boudingGroup.translateY(size.y / 2);
 
       gl.add(node);
     }
@@ -90,7 +84,7 @@ export const Canvas = () => {
 
   useEffect(() => {
     if (canvasRef.current) {
-      setGl(new Viewport(canvasRef.current));
+      setViewports({ viewport1: new Viewport(canvasRef.current) });
     }
   }, [canvasRef]);
 

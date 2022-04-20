@@ -2,6 +2,7 @@ import {
   AmbientLight,
   Camera,
   Color,
+  CubeTextureLoader,
   DoubleSide,
   GridHelper,
   HemisphereLight,
@@ -10,7 +11,9 @@ import {
   Object3D,
   PerspectiveCamera,
   Plane,
+  PlaneBufferGeometry,
   Raycaster,
+  RepeatWrapping,
   Scene,
   SphereBufferGeometry,
   SpotLight,
@@ -81,31 +84,38 @@ export default class Viewport {
     const light = new SpotLight(0xffa95c, 4);
     light.position.set(-50, 50, 50);
     light.castShadow = true;
-    light.shadow.bias = -0.0001;
-    light.shadow.mapSize.width = 1024 * 4;
-    light.shadow.mapSize.height = 1024 * 4;
     this.scene.add(light);
 
+    this.scene.background = new CubeTextureLoader().load([
+      "/textures/sky/right.png",
+      "/textures/sky/left.png",
+      "/textures/sky/top.png",
+      "/textures/sky/bottom.png",
+      "/textures/sky/front.png",
+      "/textures/sky/back.png",
+    ]);
+
     const textureLoader = new TextureLoader();
-    const texture = textureLoader.load("/textures/sky.JPG");
-
-    const cubeGeo = new SphereBufferGeometry(300, 128, 128);
-
-    const sky = new Mesh(
-      cubeGeo,
+    const texture = textureLoader.load("/textures/gp.png");
+    texture.wrapS = RepeatWrapping;
+    texture.wrapT = RepeatWrapping;
+    texture.repeat.set(50, 50);
+    const geo = new PlaneBufferGeometry(200, 200, 1, 1);
+    this.grid = new GridHelper(200, 200);
+    const ground = new Mesh(
+      geo,
       new MeshBasicMaterial({
-        color: new Color(0xffffff),
+        color: new Color(0xcccccc),
         map: texture,
-        side: DoubleSide,
       })
     );
-
-    this.scene.add(sky);
-
-    this.grid = new GridHelper(200, 200);
-    this.scene.add(this.grid);
+    ground.receiveShadow = true;
+    ground.position.y = -0.2;
+    ground.rotation.x = -Math.PI / 2;
+    this.scene.add(this.grid, ground);
 
     this.orbitControls = new OrbitControls(this.camera, canvas);
+    this.orbitControls.maxPolarAngle = Math.PI / 2;
     this.dragControls = new DragControls(this.objects, this.camera, canvas);
 
     this.dragControls.addEventListener("dragstart", () => {
@@ -121,13 +131,13 @@ export default class Viewport {
       if (event.object.parent.isGroup) {
         event.object.parent.position.set(
           this.gridPlanePointerIntersect.x,
-          this.gridPlanePointerIntersect.y,
+          event.object.parent.position.y,
           this.gridPlanePointerIntersect.z
         );
       } else {
         event.object.position.set(
           this.gridPlanePointerIntersect.x,
-          this.gridPlanePointerIntersect.y,
+          event.object.position.y,
           this.gridPlanePointerIntersect.z
         );
       }
