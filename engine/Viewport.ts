@@ -1,21 +1,17 @@
 import {
-  AmbientLight,
-  Camera,
   Color,
   CubeTextureLoader,
-  DoubleSide,
   GridHelper,
+  Group,
   HemisphereLight,
   Mesh,
   MeshBasicMaterial,
-  Object3D,
   PerspectiveCamera,
   Plane,
   PlaneBufferGeometry,
   Raycaster,
   RepeatWrapping,
   Scene,
-  SphereBufferGeometry,
   SpotLight,
   sRGBEncoding,
   TextureLoader,
@@ -23,16 +19,19 @@ import {
   Vector3,
   WebGLRenderer,
 } from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { DragControls } from "three/examples/jsm/controls/DragControls";
+import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import TNode from "./TNode";
 
 export default class Viewport {
   scene: Scene;
   renderer: WebGLRenderer;
   camera: PerspectiveCamera;
-  objects: Object3D[] = [];
+
   nodes: TNode[] = [];
+  objectGroups: Group[] = [];
+  selectedNodes: TNode[] = [];
+
   dragControls: DragControls;
   orbitControls: OrbitControls;
 
@@ -43,6 +42,8 @@ export default class Viewport {
   pointer: Vector2 = new Vector2();
 
   gridPlanePointerIntersect = new Vector3();
+
+  movingGroup: Group = new Group();
 
   constructor(canvas: HTMLCanvasElement) {
     this.scene = new Scene();
@@ -72,13 +73,28 @@ export default class Viewport {
       false
     );
 
-    window.addEventListener("click", () => {
-      this.nodes.forEach((n) => {
-        n.isSelected = false;
-      });
+    window.addEventListener("click", (e) => {
+      if (!this.nodes.some((n) => n.isRayCasted)) {
+        this.nodes.forEach((n) => {
+          n.isSelected = false;
+        });
+        this.selectedNodes = [];
+      }
       this.nodes.forEach((n) => {
         if (n.isRayCasted) {
-          n.isSelected = true;
+          if (this.selectedNodes.length >= 1) {
+            if (e.shiftKey) {
+              if (!n.isSelected) {
+                this.selectedNodes.push(n);
+              }
+              n.isSelected = true;
+            }
+          } else {
+            if (!n.isSelected) {
+              this.selectedNodes.push(n);
+            }
+            n.isSelected = true;
+          }
         }
       });
     });
@@ -120,10 +136,18 @@ export default class Viewport {
 
     this.orbitControls = new OrbitControls(this.camera, canvas);
 
-    this.dragControls = new DragControls(this.objects, this.camera, canvas);
+    this.dragControls = new DragControls(
+      this.objectGroups,
+      this.camera,
+      canvas
+    );
 
     this.dragControls.addEventListener("dragstart", () => {
       this.orbitControls.enabled = false;
+
+      // this.selectedNodes.forEach((node) => {
+      //   this.movingGroup.add(node.boudingGroup);
+      // });
     });
 
     this.dragControls.addEventListener("drag", (event) => {
@@ -169,7 +193,7 @@ export default class Viewport {
         objects.push(node.boudingGroup);
       }
     }
-    this.objects.push(...objects);
+    this.objectGroups.push(...objects);
     this.nodes.push(...nodes);
     this.scene.add(...objects);
   }

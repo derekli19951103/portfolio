@@ -100,6 +100,7 @@ export default class TNode {
       this.boundingBoxHelper.visible = false;
 
       this.boundingBox = new Box3().setFromObject(this.object);
+
       this.boudingGroup.add(this.boundingBoxHelper);
     }
   }
