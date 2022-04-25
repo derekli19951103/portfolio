@@ -6,6 +6,7 @@ import {
   HemisphereLight,
   Mesh,
   MeshBasicMaterial,
+  Object3D,
   PerspectiveCamera,
   Plane,
   PlaneBufferGeometry,
@@ -29,10 +30,9 @@ export default class Viewport {
   camera: PerspectiveCamera;
 
   nodes: TNode[] = [];
-  objectGroups: Group[] = [];
+  objectGroups: Object3D[] = [];
   selectedNodes: TNode[] = [];
 
-  dragControls: DragControls;
   orbitControls: OrbitControls;
 
   grid: GridHelper;
@@ -45,7 +45,14 @@ export default class Viewport {
 
   movingGroup: Group = new Group();
 
-  constructor(canvas: HTMLCanvasElement) {
+  width: number;
+  height: number;
+
+  dragging: boolean = false;
+  dragStartPoint: Vector3 = new Vector3();
+  dragNodesInitPos: Vector3[] = [];
+
+  constructor(canvas: HTMLCanvasElement, width?: number, height?: number) {
     this.scene = new Scene();
     this.renderer = new WebGLRenderer({
       canvas,
@@ -55,25 +62,28 @@ export default class Viewport {
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.shadowMap.enabled = true;
 
+    this.width = width || window.innerWidth;
+    this.height = height || window.innerHeight;
+
     this.camera = new PerspectiveCamera(
       75,
-      window.innerWidth / window.innerHeight,
+      this.width / this.height,
       0.1,
       1000
     );
 
     this.camera.position.set(5, 5, 5);
 
-    window.addEventListener(
+    canvas.addEventListener(
       "mousemove",
       (e) => {
-        this.pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
-        this.pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        this.pointer.x = (e.clientX / this.width) * 2 - 1;
+        this.pointer.y = -(e.clientY / this.height) * 2 + 1;
       },
       false
     );
 
-    window.addEventListener("click", (e) => {
+    canvas.addEventListener("click", (e) => {
       if (!this.nodes.some((n) => n.isRayCasted)) {
         this.nodes.forEach((n) => {
           n.isSelected = false;
@@ -86,8 +96,13 @@ export default class Viewport {
             if (e.shiftKey) {
               if (!n.isSelected) {
                 this.selectedNodes.push(n);
+                n.isSelected = true;
+              } else {
+                this.selectedNodes = this.selectedNodes.filter(
+                  (sn) => sn !== n
+                );
+                n.isSelected = false;
               }
-              n.isSelected = true;
             }
           } else {
             if (!n.isSelected) {
@@ -97,6 +112,51 @@ export default class Viewport {
           }
         }
       });
+    });
+
+    canvas.addEventListener("mousedown", (e) => {
+      if (
+        this.selectedNodes.length > 0 &&
+        this.selectedNodes.some((n) => n.isRayCasted)
+      ) {
+        this.dragging = true;
+        this.orbitControls.enabled = false;
+
+        this.raycaster.ray.intersectPlane(this.gridPlane, this.dragStartPoint);
+
+        this.dragNodesInitPos = this.selectedNodes.map((n) =>
+          n.object.position.clone()
+        );
+      }
+    });
+
+    canvas.addEventListener("mousemove", () => {
+      this.raycaster.ray.intersectPlane(
+        this.gridPlane,
+        this.gridPlanePointerIntersect
+      );
+
+      if (this.dragging) {
+        const diff = new Vector3().subVectors(
+          this.gridPlanePointerIntersect,
+          this.dragStartPoint
+        );
+
+        this.selectedNodes.forEach((node, i) => {
+          node.object.position.set(
+            diff.x + this.dragNodesInitPos[i].x,
+            this.dragNodesInitPos[i].y,
+            diff.z + this.dragNodesInitPos[i].z
+          );
+
+          node.object.updateMatrixWorld();
+        });
+      }
+    });
+
+    canvas.addEventListener("mouseup", (e) => {
+      this.dragging = false;
+      this.orbitControls.enabled = true;
     });
 
     const hemiLight = new HemisphereLight(0xffeeb1, 0x080820, 4);
@@ -136,52 +196,16 @@ export default class Viewport {
 
     this.orbitControls = new OrbitControls(this.camera, canvas);
 
-    this.dragControls = new DragControls(
-      this.objectGroups,
-      this.camera,
-      canvas
-    );
-
-    this.dragControls.addEventListener("dragstart", () => {
-      this.orbitControls.enabled = false;
-
-      // this.selectedNodes.forEach((node) => {
-      //   this.movingGroup.add(node.boudingGroup);
-      // });
-    });
-
-    this.dragControls.addEventListener("drag", (event) => {
-      this.raycaster.ray.intersectPlane(
-        this.gridPlane,
-        this.gridPlanePointerIntersect
-      );
-
-      if (event.object.parent.isGroup) {
-        event.object.parent.position.set(
-          this.gridPlanePointerIntersect.x,
-          event.object.parent.position.y,
-          this.gridPlanePointerIntersect.z
-        );
-      } else {
-        event.object.position.set(
-          this.gridPlanePointerIntersect.x,
-          event.object.position.y,
-          this.gridPlanePointerIntersect.z
-        );
-      }
-    });
-
-    this.dragControls.addEventListener("dragend", () => {
-      this.orbitControls.enabled = true;
-    });
-
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.renderer.setSize(this.width, this.height);
 
     window.addEventListener("resize", () => {
-      this.camera.aspect = window.innerWidth / window.innerHeight;
+      this.width = window.innerWidth;
+      this.height = window.innerHeight;
+
+      this.camera.aspect = this.width / this.height;
       this.camera.updateProjectionMatrix();
 
-      this.renderer.setSize(window.innerWidth, window.innerHeight);
+      this.renderer.setSize(this.width, this.height);
     });
   }
 
@@ -190,7 +214,7 @@ export default class Viewport {
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
       if (node.object) {
-        objects.push(node.boudingGroup);
+        objects.push(node.object);
       }
     }
     this.objectGroups.push(...objects);
@@ -202,8 +226,8 @@ export default class Viewport {
     this.raycaster.setFromCamera(this.pointer, this.camera);
     this.renderer.render(this.scene, this.camera);
     this.nodes.forEach((n) => {
-      if (n.boudingGroup) {
-        const intersect = this.raycaster.intersectObjects([n.boudingGroup]);
+      if (n.object) {
+        const intersect = this.raycaster.intersectObjects([n.object]);
         if (intersect.length) {
           n.isRayCasted = true;
           if (!n.isSelected && !n.isHovered) {

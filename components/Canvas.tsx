@@ -49,6 +49,13 @@ export const Canvas = () => {
 
       const node = new TNode(mesh);
 
+      const size = new Vector3();
+
+      node.bbox.getSize(size);
+
+      node.object.translateY(size.y / 2);
+      node.object.translateX(4);
+
       gl.add(node);
     }
   };
@@ -64,9 +71,10 @@ export const Canvas = () => {
       const node = new TNode(sphere);
 
       const size = new Vector3();
-      node.boundingBox!.getSize(size);
 
-      node.boudingGroup.translateY(size.y / 2);
+      node.bbox.getSize(size);
+
+      node.object.translateY(size.y / 2);
 
       gl.add(node);
     }
@@ -110,7 +118,7 @@ export const Canvas = () => {
           Add GLB
         </button>
       </nav>
-      <canvas ref={canvasRef} style={{ width: "100vw", height: "100vh" }} />
+      <canvas ref={canvasRef} />
     </div>
   );
 };

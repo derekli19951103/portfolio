@@ -1,11 +1,13 @@
 import { extname } from "path";
 import {
   Box3,
-  BoxHelper,
+  BufferGeometry,
   Group,
+  LineBasicMaterial,
+  LineSegments,
   LoadingManager,
-  MeshBasicMaterial,
   Object3D,
+  Vector3,
 } from "three";
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
@@ -13,12 +15,11 @@ import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 export default class TNode {
   parentNode: TNode | undefined;
   url: string | undefined;
-  object: Object3D | Group | undefined;
+  object: Object3D;
   children: TNode[] | undefined;
 
-  boudingGroup: Group;
-  boundingBoxHelper: BoxHelper | undefined;
-  boundingBox: Box3 | undefined;
+  bbox: Box3;
+  bboxWire: LineSegments<BufferGeometry, LineBasicMaterial>;
 
   private _isRayCasted: boolean = false;
   private _isHovered: boolean = false;
@@ -26,8 +27,12 @@ export default class TNode {
 
   loadingManager: LoadingManager = new LoadingManager();
 
-  private hoverColor = new MeshBasicMaterial({ color: "green" });
-  private selectedColor = new MeshBasicMaterial({ color: "red" });
+  private hoverColor = new LineBasicMaterial({
+    color: "green",
+  });
+  private selectedColor = new LineBasicMaterial({
+    color: "red",
+  });
 
   constructor(
     object?: Object3D | Group,
@@ -36,9 +41,10 @@ export default class TNode {
   ) {
     this.parentNode = parentNode;
     this.children = children;
-    this.object = object;
+    this.object = object || new Object3D();
 
-    this.boudingGroup = new Group();
+    this.bbox = new Box3().setFromObject(this.object);
+    this.bboxWire = new LineSegments();
 
     this.addBoundingBox();
   }
@@ -93,16 +99,28 @@ export default class TNode {
   }
 
   private addBoundingBox() {
-    if (this.object) {
-      this.boudingGroup.add(this.object);
-      this.boundingBoxHelper = new BoxHelper(this.object);
-      this.boundingBoxHelper.material = this.hoverColor;
-      this.boundingBoxHelper.visible = false;
+    const bboxMin = this.bbox.min;
+    const bboxMax = this.bbox.max;
+    const wireGeo = new BufferGeometry().setFromPoints([
+      new Vector3(bboxMin.x, bboxMin.y, bboxMin.z),
+      new Vector3(bboxMin.x, bboxMin.y, bboxMax.z),
+      new Vector3(bboxMin.x, bboxMax.y, bboxMax.z),
+      new Vector3(bboxMin.x, bboxMax.y, bboxMin.z),
+      new Vector3(bboxMax.x, bboxMin.y, bboxMin.z),
+      new Vector3(bboxMax.x, bboxMin.y, bboxMax.z),
+      new Vector3(bboxMax.x, bboxMax.y, bboxMax.z),
+      new Vector3(bboxMax.x, bboxMax.y, bboxMin.z),
+    ]);
 
-      this.boundingBox = new Box3().setFromObject(this.object);
+    wireGeo.setIndex([
+      0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7,
+    ]);
 
-      this.boudingGroup.add(this.boundingBoxHelper);
-    }
+    const bboxWire = new LineSegments(wireGeo, this.hoverColor);
+
+    this.bboxWire = bboxWire;
+
+    this.object.add(this.bboxWire);
   }
 
   get isHovered() {
@@ -111,11 +129,11 @@ export default class TNode {
 
   set isHovered(hovered: boolean) {
     this._isHovered = hovered;
-    if (this.boundingBoxHelper) {
+    if (this.bboxWire) {
       if (hovered === true) {
-        this.boundingBoxHelper.visible = true;
+        this.bboxWire.visible = true;
       } else {
-        this.boundingBoxHelper.visible = false;
+        this.bboxWire.visible = false;
       }
     }
   }
@@ -126,11 +144,11 @@ export default class TNode {
 
   set isSelected(selected: boolean) {
     this._isSelected = selected;
-    if (this.boundingBoxHelper) {
+    if (this.bboxWire) {
       if (selected === true) {
-        this.boundingBoxHelper.material = this.selectedColor;
+        this.bboxWire.material = this.selectedColor;
       } else {
-        this.boundingBoxHelper.material = this.hoverColor;
+        this.bboxWire.material = this.hoverColor;
       }
     }
   }
