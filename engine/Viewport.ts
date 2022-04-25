@@ -103,6 +103,12 @@ export default class Viewport {
                 );
                 n.isSelected = false;
               }
+            } else {
+              if (this.selectedNodes.length === 1) {
+                this.selectedNodes[0].isSelected = false;
+                this.selectedNodes = [n];
+                n.isSelected = true;
+              }
             }
           } else {
             if (!n.isSelected) {
