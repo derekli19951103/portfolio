@@ -65,12 +65,7 @@ export default class Viewport {
     this.width = width || window.innerWidth;
     this.height = height || window.innerHeight;
 
-    this.camera = new PerspectiveCamera(
-      75,
-      this.width / this.height,
-      0.1,
-      1000
-    );
+    this.camera = new PerspectiveCamera(45, this.width / this.height, 0.1, 600);
 
     this.camera.position.set(5, 5, 5);
 
@@ -154,8 +149,6 @@ export default class Viewport {
             this.dragNodesInitPos[i].y,
             diff.z + this.dragNodesInitPos[i].z
           );
-
-          node.object.updateMatrixWorld();
         });
       }
     });
@@ -233,7 +226,7 @@ export default class Viewport {
     this.renderer.render(this.scene, this.camera);
     this.nodes.forEach((n) => {
       if (n.object) {
-        const intersect = this.raycaster.intersectObjects([n.object]);
+        const intersect = this.raycaster.intersectObjects([n.object], false);
         if (intersect.length) {
           n.isRayCasted = true;
           if (!n.isSelected && !n.isHovered) {
