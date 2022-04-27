@@ -193,8 +193,8 @@ export default class Viewport {
       })
     );
     ground.receiveShadow = true;
-    ground.position.y = -0.2;
-    ground.rotation.x = -Math.PI / 2;
+    ground.position.y -= 0.2;
+    ground.rotation.x -= Math.PI / 2;
     this.scene.add(this.grid, ground);
 
     this.orbitControls = new OrbitControls(this.camera, canvas);
@@ -231,6 +231,7 @@ export default class Viewport {
     this.raycaster.setFromCamera(this.pointer, this.camera);
     this.renderer.render(this.scene, this.camera);
     this.nodes.forEach((n) => {
+      //@ts-ignore
       const subsets = n.object.children.filter((o) => o.isMesh);
       const intersect = this.raycaster.intersectObjects([n.object], false);
       const subsetIntersect = this.raycaster.intersectObjects(subsets, false);

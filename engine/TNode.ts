@@ -6,6 +6,7 @@ import {
   LineBasicMaterial,
   LineSegments,
   LoadingManager,
+  Matrix4,
   Mesh,
   Object3D,
   Vector3,
@@ -99,6 +100,23 @@ export default class TNode {
                 });
 
                 mesh.add(...meshes);
+
+                // const bbox = new Box3().setFromObject(mesh);
+                // const center = new Vector3();
+                // console.log(center);
+                // bbox.getCenter(center);
+                // center.negate();
+
+                // console.log(center);
+
+                // mesh.traverse((c) => {
+                //   const matrix = new Matrix4().makeTranslation(
+                //     center.x,
+                //     center.y,
+                //     center.z
+                //   );
+                //   (c as Mesh).geometry.applyMatrix4(matrix);
+                // });
 
                 this.object = mesh;
 
