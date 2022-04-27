@@ -241,8 +241,13 @@ export default class Viewport {
     this.raycaster.setFromCamera(this.pointer, this.camera);
     this.renderer.render(this.scene, this.camera);
     this.nodes.forEach((n) => {
-      //@ts-ignore
-      const subsets = n.object.children.filter((o) => o.isMesh);
+      const subsets: Mesh[] = [];
+      n.object.traverse((o) => {
+        //@ts-ignore
+        if (o.isMesh) {
+          subsets.push(o as Mesh);
+        }
+      });
       const intersect = this.raycaster.intersectObjects([n.object], false);
       const subsetIntersect = this.raycaster.intersectObjects(subsets, false);
       if (intersect.length || subsetIntersect.length) {
