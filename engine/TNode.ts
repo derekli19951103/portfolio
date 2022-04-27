@@ -6,6 +6,7 @@ import {
   LineBasicMaterial,
   LineSegments,
   LoadingManager,
+  Mesh,
   Object3D,
   Vector3,
 } from "three";
@@ -15,7 +16,7 @@ import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 export default class TNode {
   parentNode: TNode | undefined;
   url: string | undefined;
-  object: Object3D;
+  object: Mesh;
   children: TNode[] | undefined;
 
   bbox: Box3;
@@ -34,19 +35,17 @@ export default class TNode {
     color: "red",
   });
 
-  constructor(
-    object?: Object3D | Group,
-    parentNode?: TNode,
-    children?: TNode[]
-  ) {
+  constructor(object?: Mesh, parentNode?: TNode, children?: TNode[]) {
     this.parentNode = parentNode;
     this.children = children;
-    this.object = object || new Object3D();
+    this.object = object || new Mesh();
 
-    this.bbox = new Box3().setFromObject(this.object);
+    this.bbox = new Box3();
     this.bboxWire = new LineSegments();
 
-    this.addBoundingBox();
+    if (object) {
+      this.addBoundingBox();
+    }
   }
 
   load(url: string) {
@@ -58,9 +57,9 @@ export default class TNode {
       let ext = extname(url).toLowerCase();
 
       switch (ext) {
-        case ".fbx":
-          loader = new FBXLoader(this.loadingManager);
-          break;
+        // case ".fbx":
+        //   loader = new FBXLoader(this.loadingManager);
+        //   break;
         case ".gltf":
           loader = new GLTFLoader(this.loadingManager);
           break;
@@ -73,15 +72,36 @@ export default class TNode {
         loader.load(
           url,
           (object) => {
+            const mesh = new Mesh();
+            const meshes: Mesh[] = [];
             switch (ext) {
-              case ".fbx":
-                this.object = object as Group;
-                break;
+              // case ".fbx":
+              //   this.object = object as Group;
+              //   break;
               case ".gltf":
-                this.object = (object as GLTF).scene;
+                (object as GLTF).scene.traverse((child) => {
+                  //@ts-ignore
+                  if (child.isMesh) {
+                    meshes.push(child as Mesh);
+                  }
+                });
+
+                mesh.add(...meshes);
+                this.object.add(mesh);
+
                 break;
               case ".glb":
-                this.object = (object as GLTF).scene;
+                (object as GLTF).scene.traverse((child) => {
+                  //@ts-ignore
+                  if (child.isMesh) {
+                    meshes.push(child as Mesh);
+                  }
+                });
+
+                mesh.add(...meshes);
+
+                this.object = mesh;
+
                 break;
             }
 
@@ -99,8 +119,10 @@ export default class TNode {
   }
 
   private addBoundingBox() {
+    this.bbox = this.bbox.setFromObject(this.object);
     const bboxMin = this.bbox.min;
     const bboxMax = this.bbox.max;
+
     const wireGeo = new BufferGeometry().setFromPoints([
       new Vector3(bboxMin.x, bboxMin.y, bboxMin.z),
       new Vector3(bboxMin.x, bboxMin.y, bboxMax.z),
@@ -120,6 +142,8 @@ export default class TNode {
 
     this.bboxWire = bboxWire;
 
+    this.bboxWire.visible = false;
+
     this.object.add(this.bboxWire);
   }
 
@@ -129,12 +153,11 @@ export default class TNode {
 
   set isHovered(hovered: boolean) {
     this._isHovered = hovered;
-    if (this.bboxWire) {
-      if (hovered === true) {
-        this.bboxWire.visible = true;
-      } else {
-        this.bboxWire.visible = false;
-      }
+
+    if (hovered === true) {
+      this.bboxWire.visible = true;
+    } else {
+      this.bboxWire.visible = false;
     }
   }
 
@@ -144,12 +167,11 @@ export default class TNode {
 
   set isSelected(selected: boolean) {
     this._isSelected = selected;
-    if (this.bboxWire) {
-      if (selected === true) {
-        this.bboxWire.material = this.selectedColor;
-      } else {
-        this.bboxWire.material = this.hoverColor;
-      }
+
+    if (selected === true) {
+      this.bboxWire.material = this.selectedColor;
+    } else {
+      this.bboxWire.material = this.hoverColor;
     }
   }
 

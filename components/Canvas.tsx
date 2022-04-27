@@ -84,7 +84,14 @@ export const Canvas = () => {
     if (gl) {
       const node = new TNode();
 
-      await node.load("/models/LCSHF30.glb");
+      await node.load("/models/LCSHF30_mini1.glb");
+
+      const size = new Vector3();
+
+      node.bbox.getSize(size);
+
+      node.object.rotateX(-Math.PI / 2);
+      node.object.translateZ(size.z / 2);
 
       gl.add(node);
     }

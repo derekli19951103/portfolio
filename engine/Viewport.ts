@@ -47,6 +47,7 @@ export default class Viewport {
 
   width: number;
   height: number;
+  private fixed: boolean = false;
 
   dragging: boolean = false;
   dragStartPoint: Vector3 = new Vector3();
@@ -64,10 +65,13 @@ export default class Viewport {
 
     this.width = width || window.innerWidth;
     this.height = height || window.innerHeight;
+    if (width && height) {
+      this.fixed = true;
+    }
 
     this.camera = new PerspectiveCamera(45, this.width / this.height, 0.1, 600);
 
-    this.camera.position.set(5, 5, 5);
+    this.camera.position.set(10, 10, 10);
 
     canvas.addEventListener(
       "mousemove",
@@ -146,7 +150,7 @@ export default class Viewport {
         this.selectedNodes.forEach((node, i) => {
           node.object.position.set(
             diff.x + this.dragNodesInitPos[i].x,
-            this.dragNodesInitPos[i].y,
+            diff.y + this.dragNodesInitPos[i].y,
             diff.z + this.dragNodesInitPos[i].z
           );
         });
@@ -198,13 +202,15 @@ export default class Viewport {
     this.renderer.setSize(this.width, this.height);
 
     window.addEventListener("resize", () => {
-      this.width = window.innerWidth;
-      this.height = window.innerHeight;
+      if (!this.fixed) {
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
 
-      this.camera.aspect = this.width / this.height;
-      this.camera.updateProjectionMatrix();
+        this.camera.aspect = this.width / this.height;
+        this.camera.updateProjectionMatrix();
 
-      this.renderer.setSize(this.width, this.height);
+        this.renderer.setSize(this.width, this.height);
+      }
     });
   }
 
@@ -225,18 +231,18 @@ export default class Viewport {
     this.raycaster.setFromCamera(this.pointer, this.camera);
     this.renderer.render(this.scene, this.camera);
     this.nodes.forEach((n) => {
-      if (n.object) {
-        const intersect = this.raycaster.intersectObjects([n.object], false);
-        if (intersect.length) {
-          n.isRayCasted = true;
-          if (!n.isSelected && !n.isHovered) {
-            n.isHovered = true;
-          }
-        } else {
-          n.isRayCasted = false;
-          if (!n.isSelected && n.isHovered) {
-            n.isHovered = false;
-          }
+      const subsets = n.object.children.filter((o) => o.isMesh);
+      const intersect = this.raycaster.intersectObjects([n.object], false);
+      const subsetIntersect = this.raycaster.intersectObjects(subsets, false);
+      if (intersect.length || subsetIntersect.length) {
+        n.isRayCasted = true;
+        if (!n.isSelected && !n.isHovered) {
+          n.isHovered = true;
+        }
+      } else {
+        n.isRayCasted = false;
+        if (!n.isSelected && n.isHovered) {
+          n.isHovered = false;
         }
       }
     });
