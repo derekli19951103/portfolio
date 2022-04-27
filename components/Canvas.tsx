@@ -47,7 +47,7 @@ export const Canvas = () => {
       mesh.castShadow = true;
       mesh.receiveShadow = true;
 
-      const node = new TNode(mesh);
+      const node = new TNode(gl, mesh);
 
       const size = new Vector3();
 
@@ -68,7 +68,7 @@ export const Canvas = () => {
       });
       const sphere = new Mesh(geometry, material);
 
-      const node = new TNode(sphere);
+      const node = new TNode(gl, sphere);
 
       const size = new Vector3();
 
@@ -82,7 +82,7 @@ export const Canvas = () => {
 
   const addGLB = async () => {
     if (gl) {
-      const node = new TNode();
+      const node = new TNode(gl);
 
       await node.load("/models/LCSHF30_mini1.glb");
 
@@ -90,8 +90,7 @@ export const Canvas = () => {
 
       node.bbox.getSize(size);
 
-      node.object.rotateX(-Math.PI / 2);
-      node.object.translateZ(size.z / 2);
+      node.object.position.y = size.y / 2;
 
       gl.add(node);
     }

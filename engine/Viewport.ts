@@ -2,26 +2,23 @@ import {
   Color,
   CubeTextureLoader,
   GridHelper,
-  Group,
   HemisphereLight,
   Mesh,
   MeshBasicMaterial,
-  Object3D,
   PerspectiveCamera,
   Plane,
   PlaneBufferGeometry,
   Raycaster,
   RepeatWrapping,
   Scene,
-  SpotLight,
   sRGBEncoding,
   TextureLoader,
   Vector2,
   Vector3,
   WebGLRenderer,
 } from "three";
-import { DragControls } from "three/examples/jsm/controls/DragControls";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { TransformControls } from "three/examples/jsm/controls/TransformControls";
 import TNode from "./TNode";
 
 export default class Viewport {
@@ -30,10 +27,10 @@ export default class Viewport {
   camera: PerspectiveCamera;
 
   nodes: TNode[] = [];
-  objectGroups: Object3D[] = [];
   selectedNodes: TNode[] = [];
 
   orbitControls: OrbitControls;
+  transformControls: TransformControls;
 
   grid: GridHelper;
   gridPlane: Plane = new Plane(new Vector3(0, 1, 0), 0);
@@ -43,20 +40,21 @@ export default class Viewport {
 
   gridPlanePointerIntersect = new Vector3();
 
-  movingGroup: Group = new Group();
-
   width: number;
   height: number;
   private fixed: boolean = false;
 
-  dragging: boolean = false;
-  dragStartPoint: Vector3 = new Vector3();
-  dragNodesInitPos: Vector3[] = [];
+  private dragging: boolean = false;
+  private dragStartPoint: Vector3 = new Vector3();
+  private dragNodesInitPos: Vector3[] = [];
+
+  private transforming: boolean = false;
 
   constructor(canvas: HTMLCanvasElement, width?: number, height?: number) {
     this.scene = new Scene();
     this.renderer = new WebGLRenderer({
       canvas,
+      antialias: true,
     });
 
     this.renderer.outputEncoding = sRGBEncoding;
@@ -81,6 +79,16 @@ export default class Viewport {
       },
       false
     );
+
+    this.orbitControls = new OrbitControls(this.camera, canvas);
+    this.transformControls = new TransformControls(this.camera, canvas);
+
+    this.transformControls.addEventListener("dragging-changed", (e) => {
+      this.transforming = e.value;
+      this.orbitControls.enabled = !e.value;
+    });
+
+    this.scene.add(this.transformControls);
 
     canvas.addEventListener("click", (e) => {
       if (!this.nodes.some((n) => n.isRayCasted)) {
@@ -141,7 +149,7 @@ export default class Viewport {
         this.gridPlanePointerIntersect
       );
 
-      if (this.dragging) {
+      if (this.dragging && !this.transforming) {
         const diff = new Vector3().subVectors(
           this.gridPlanePointerIntersect,
           this.dragStartPoint
@@ -164,10 +172,6 @@ export default class Viewport {
 
     const hemiLight = new HemisphereLight(0xffeeb1, 0x080820, 4);
     this.scene.add(hemiLight);
-    const light = new SpotLight(0xffa95c, 4);
-    light.position.set(-50, 50, 50);
-    light.castShadow = true;
-    this.scene.add(light);
 
     this.scene.background = new CubeTextureLoader().load([
       "/textures/sky/right.jpg",
@@ -197,8 +201,6 @@ export default class Viewport {
     ground.rotation.x -= Math.PI / 2;
     this.scene.add(this.grid, ground);
 
-    this.orbitControls = new OrbitControls(this.camera, canvas);
-
     this.renderer.setSize(this.width, this.height);
 
     window.addEventListener("resize", () => {
@@ -222,9 +224,17 @@ export default class Viewport {
         objects.push(node.object);
       }
     }
-    this.objectGroups.push(...objects);
+
     this.nodes.push(...nodes);
     this.scene.add(...objects);
+  }
+
+  public enableTransformControls(node: TNode) {
+    this.transformControls.attach(node.object);
+  }
+
+  public disableTransformControls() {
+    this.transformControls.detach();
   }
 
   render() {

@@ -13,12 +13,16 @@ import {
 } from "three";
 import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import Viewport from "./Viewport";
 
 export default class TNode {
+  viewport: Viewport;
+
   parentNode: TNode | undefined;
   url: string | undefined;
-  object: Mesh;
   children: TNode[] | undefined;
+
+  object: Mesh;
 
   bbox: Box3;
   bboxWire: LineSegments<BufferGeometry, LineBasicMaterial>;
@@ -36,10 +40,16 @@ export default class TNode {
     color: "red",
   });
 
-  constructor(object?: Mesh, parentNode?: TNode, children?: TNode[]) {
+  constructor(
+    viewport: Viewport,
+    object?: Mesh,
+    parentNode?: TNode,
+    children?: TNode[]
+  ) {
     this.parentNode = parentNode;
     this.children = children;
     this.object = object || new Mesh();
+    this.viewport = viewport;
 
     this.bbox = new Box3();
     this.bboxWire = new LineSegments();
@@ -101,22 +111,10 @@ export default class TNode {
 
                 mesh.add(...meshes);
 
-                // const bbox = new Box3().setFromObject(mesh);
-                // const center = new Vector3();
-                // console.log(center);
-                // bbox.getCenter(center);
-                // center.negate();
-
-                // console.log(center);
-
-                // mesh.traverse((c) => {
-                //   const matrix = new Matrix4().makeTranslation(
-                //     center.x,
-                //     center.y,
-                //     center.z
-                //   );
-                //   (c as Mesh).geometry.applyMatrix4(matrix);
-                // });
+                mesh.traverse((c) => {
+                  const matrix = new Matrix4().makeRotationX(-Math.PI / 2);
+                  (c as Mesh).geometry.applyMatrix4(matrix);
+                });
 
                 this.object = mesh;
 
@@ -188,8 +186,11 @@ export default class TNode {
 
     if (selected === true) {
       this.bboxWire.material = this.selectedColor;
+      this.viewport.disableTransformControls();
+      this.viewport.enableTransformControls(this);
     } else {
       this.bboxWire.material = this.hoverColor;
+      this.viewport.disableTransformControls();
     }
   }
 
