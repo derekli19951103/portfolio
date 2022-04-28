@@ -3,27 +3,19 @@ import {
   Box3,
   BoxBufferGeometry,
   BufferGeometry,
-  Group,
-  Line,
-  LineBasicMaterial,
   LineSegments,
   LoadingManager,
   Matrix4,
   Mesh,
-  MeshBasicMaterial,
-  Object3D,
+  Vector2,
   Vector3,
 } from "three";
-import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
-import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
-import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
-import { LineMaterial } from "three/examples/jsm/lines/LineMaterial.js";
 import { Line2 } from "three/examples/jsm/lines/Line2";
-import { LineSegments2 } from "three/examples/jsm/lines/LineSegments2";
+import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
+import { LineMaterial } from "three/examples/jsm/lines/LineMaterial";
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
+import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import Viewport from "./Viewport";
-import { LineSegmentsGeometry } from "three/examples/jsm/lines/LineSegmentsGeometry";
-import ThreeMeshLine from "three.meshline";
 
 export default class TNode {
   viewport: Viewport;
@@ -45,22 +37,8 @@ export default class TNode {
 
   loadingManager: LoadingManager = new LoadingManager();
 
-  // private hoverColor = new ThreeMeshLine.MeshLineMaterial({
-  //   color: 0xecb82d,
-  //   linewidth: 1,
-  // });
-  // private selectedColor = new ThreeMeshLine.MeshLineMaterial({
-  //   color: 0xecb82d,
-  //   linewidth: 4,
-  //   depthTest: false,
-  // });
-
-  private hoverColor = new LineBasicMaterial({
-    color: "green",
-  });
-  private selectedColor = new LineBasicMaterial({
-    color: "red",
-  });
+  private hoverColor: LineMaterial;
+  private selectedColor: LineMaterial;
 
   constructor(
     viewport: Viewport,
@@ -72,6 +50,17 @@ export default class TNode {
     this.children = children;
     this.object = object || new Mesh();
     this.viewport = viewport;
+
+    this.hoverColor = new LineMaterial({
+      color: 0x4080ff,
+      linewidth: 2,
+      resolution: new Vector2(this.viewport.width, this.viewport.height),
+    });
+    this.selectedColor = new LineMaterial({
+      color: 0x4080ff,
+      linewidth: 4,
+      resolution: new Vector2(this.viewport.width, this.viewport.height),
+    });
 
     this.bbox = new Box3();
     this.bboxWire = new Line2();
@@ -93,9 +82,6 @@ export default class TNode {
       let ext = extname(url).toLowerCase();
 
       switch (ext) {
-        // case ".fbx":
-        //   loader = new FBXLoader(this.loadingManager);
-        //   break;
         case ".gltf":
         case ".glb": {
           loader = new GLTFLoader(this.loadingManager);
@@ -113,9 +99,6 @@ export default class TNode {
           url,
           (object) => {
             switch (ext) {
-              // case ".fbx":
-              //   this.object = object as Group;
-              //   break;
               case ".gltf":
               case ".glb":
                 (object as GLTF).scene.traverse((child) => {
@@ -153,28 +136,46 @@ export default class TNode {
     const bboxMax = this.bbox.max;
 
     const wireGeo = new BufferGeometry().setFromPoints([
+      //1
       new Vector3(bboxMin.x, bboxMin.y, bboxMin.z),
+      //2
       new Vector3(bboxMin.x, bboxMin.y, bboxMax.z),
+      //3
       new Vector3(bboxMin.x, bboxMax.y, bboxMax.z),
+      //4
       new Vector3(bboxMin.x, bboxMax.y, bboxMin.z),
+      //1
+      new Vector3(bboxMin.x, bboxMin.y, bboxMin.z),
+      //5
       new Vector3(bboxMax.x, bboxMin.y, bboxMin.z),
+      //6
       new Vector3(bboxMax.x, bboxMin.y, bboxMax.z),
+      //7
       new Vector3(bboxMax.x, bboxMax.y, bboxMax.z),
+      //8
+      new Vector3(bboxMax.x, bboxMax.y, bboxMin.z),
+      //4
+      new Vector3(bboxMin.x, bboxMax.y, bboxMin.z),
+      //3
+      new Vector3(bboxMin.x, bboxMax.y, bboxMax.z),
+      //7
+      new Vector3(bboxMax.x, bboxMax.y, bboxMax.z),
+      //6
+      new Vector3(bboxMax.x, bboxMin.y, bboxMax.z),
+      //2
+      new Vector3(bboxMin.x, bboxMin.y, bboxMax.z),
+      //1
+      new Vector3(bboxMin.x, bboxMin.y, bboxMin.z),
+      //5
+      new Vector3(bboxMax.x, bboxMin.y, bboxMin.z),
+      //8
       new Vector3(bboxMax.x, bboxMax.y, bboxMin.z),
     ]);
 
-    wireGeo.setIndex([
-      0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6, 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7,
-    ]);
+    const line = new LineSegments(wireGeo);
+    const wire = new LineGeometry().fromLineSegments(line);
 
-    // const line = new ThreeMeshLine.MeshLine();
-    // line.setGeometry(wireGeo);
-
-    // this.bboxWire = new Mesh(line, this.hoverColor);
-
-    const bboxWire = new LineSegments(wireGeo, this.hoverColor);
-
-    this.bboxWire = bboxWire;
+    this.bboxWire = new Line2(wire, this.hoverColor);
 
     this.bboxWire.visible = false;
 
