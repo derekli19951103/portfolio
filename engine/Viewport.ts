@@ -1,7 +1,11 @@
 import {
+  ACESFilmicToneMapping,
   Color,
+  CubeCamera,
   CubeTextureLoader,
+  EquirectangularReflectionMapping,
   GridHelper,
+  HalfFloatType,
   HemisphereLight,
   Mesh,
   MeshBasicMaterial,
@@ -15,6 +19,7 @@ import {
   TextureLoader,
   Vector2,
   Vector3,
+  WebGLCubeRenderTarget,
   WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
@@ -50,6 +55,9 @@ export default class Viewport {
 
   private transforming: boolean = false;
 
+  cubeRenderTarget: WebGLCubeRenderTarget;
+  cubeCamera: CubeCamera;
+
   constructor(canvas: HTMLCanvasElement, width?: number, height?: number) {
     this.scene = new Scene();
     this.renderer = new WebGLRenderer({
@@ -60,6 +68,7 @@ export default class Viewport {
     this.renderer.outputEncoding = sRGBEncoding;
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.shadowMap.enabled = true;
+    this.renderer.toneMapping = ACESFilmicToneMapping;
 
     this.width = width || window.innerWidth;
     this.height = height || window.innerHeight;
@@ -69,7 +78,7 @@ export default class Viewport {
 
     this.camera = new PerspectiveCamera(45, this.width / this.height, 0.1, 600);
 
-    this.camera.position.set(10, 10, 10);
+    this.camera.position.set(5, 5, 5);
 
     canvas.addEventListener(
       "mousemove",
@@ -182,6 +191,11 @@ export default class Viewport {
       "/textures/sky/back.jpg",
     ]);
 
+    this.cubeRenderTarget = new WebGLCubeRenderTarget(256);
+    this.cubeRenderTarget.texture.type = HalfFloatType;
+
+    this.cubeCamera = new CubeCamera(1, 1000, this.cubeRenderTarget);
+
     const textureLoader = new TextureLoader();
     const texture = textureLoader.load("/textures/gp.png");
     texture.wrapS = RepeatWrapping;
@@ -193,7 +207,6 @@ export default class Viewport {
       geo,
       new MeshBasicMaterial({
         color: new Color(0xcccccc),
-        map: texture,
       })
     );
     ground.receiveShadow = true;
@@ -239,6 +252,7 @@ export default class Viewport {
 
   render() {
     this.raycaster.setFromCamera(this.pointer, this.camera);
+    this.cubeCamera.update(this.renderer, this.scene);
     this.renderer.render(this.scene, this.camera);
     this.nodes.forEach((n) => {
       const subsets: Mesh[] = [];

@@ -1,13 +1,19 @@
 import { useEffect, useRef } from "react";
 import {
   Color,
+  CubeCamera,
+  DoubleSide,
+  HalfFloatType,
   Mesh,
   MeshBasicMaterial,
+  MeshStandardMaterial,
+  PlaneGeometry,
   ShaderMaterial,
   SphereGeometry,
   Texture,
   TorusKnotGeometry,
   Vector3,
+  WebGLCubeRenderTarget,
 } from "three";
 import TNode from "../engine/TNode";
 import Viewport from "../engine/Viewport";
@@ -20,7 +26,7 @@ export const Canvas = () => {
 
   const addCustomShaderObj = async () => {
     if (gl) {
-      const geometry = new TorusKnotGeometry(1, 0.2, 100, 16);
+      const geometry = new TorusKnotGeometry(0.5, 0.2, 100, 16);
 
       let uniforms = {
         Ka: { type: "float", value: 1.0 },
@@ -62,9 +68,12 @@ export const Canvas = () => {
 
   const addNormalObj = () => {
     if (gl) {
-      const geometry = new SphereGeometry(2, 32, 16);
-      const material = new MeshBasicMaterial({
-        envMap: gl.scene.background as Texture,
+      const geometry = new PlaneGeometry(5, 5, 100, 100);
+      const material = new MeshStandardMaterial({
+        envMap: gl.cubeRenderTarget.texture,
+        roughness: 0.05,
+        metalness: 1,
+        side: DoubleSide,
       });
       const sphere = new Mesh(geometry, material);
 
