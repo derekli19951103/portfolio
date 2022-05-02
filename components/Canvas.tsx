@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { Button, Input, Modal, Select } from "antd";
+import { useEffect, useRef, useState } from "react";
 import {
   Color,
   CubeCamera,
@@ -15,14 +16,18 @@ import {
   Vector3,
   WebGLCubeRenderTarget,
 } from "three";
+import { SampleModelUrls } from "../constant/ModelURL";
 import TNode from "../engine/TNode";
 import Viewport from "../engine/Viewport";
 import { useViewports } from "../store/viewports";
+import { Reflector } from "three/examples/jsm/objects/Reflector";
 
 export const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { viewports, setViewports } = useViewports();
   const gl = viewports.viewport1;
+  const [dataUrl, setDataUrl] = useState("");
+  const [open, setOpen] = useState(false);
 
   const addCustomShaderObj = async () => {
     if (gl) {
@@ -75,7 +80,11 @@ export const Canvas = () => {
         metalness: 1,
         side: DoubleSide,
       });
-      const sphere = new Mesh(geometry, material);
+      const sphere = new Reflector(geometry, {
+        clipBias: 0.003,
+        textureWidth: gl.width * window.devicePixelRatio,
+        textureHeight: gl.height * window.devicePixelRatio,
+      });
 
       const node = new TNode(gl, sphere);
 
@@ -105,6 +114,19 @@ export const Canvas = () => {
     }
   };
 
+  const addUrl = async () => {
+    if (gl) {
+      const node = new TNode(gl);
+      await node.load(dataUrl);
+      const size = new Vector3();
+      node.bbox.getSize(size);
+      node.object.position.y = size.y / 2;
+      gl.add(node);
+      setOpen(false);
+      setDataUrl("");
+    }
+  };
+
   useEffect(() => {
     if (canvasRef.current) {
       setViewports({ viewport1: new Viewport(canvasRef.current) });
@@ -123,17 +145,46 @@ export const Canvas = () => {
   return (
     <div style={{ width: "100vw", height: "100vh" }}>
       <nav className="nav" style={{ position: "absolute" }}>
-        <button className="btn" onClick={addCustomShaderObj}>
+        <Button className="btn" onClick={addCustomShaderObj}>
           Add Custom Shader Obj
-        </button>
-        <button className="btn" onClick={addNormalObj}>
-          Add Normal Obj
-        </button>
-        <button className="btn" onClick={addGLB}>
+        </Button>
+        <Button className="btn" onClick={addNormalObj}>
+          Add Mirror
+        </Button>
+        <Button className="btn" onClick={addGLB}>
           Add GLB
-        </button>
+        </Button>
+        <Button
+          onClick={() => {
+            setOpen(true);
+          }}
+        >
+          Add Url
+        </Button>
+        <Modal
+          title="Add Model Url"
+          visible={open}
+          onCancel={() => {
+            setOpen(false);
+          }}
+          onOk={addUrl}
+        >
+          <Input
+            value={dataUrl}
+            onChange={(e) => {
+              setDataUrl(e.target.value);
+            }}
+          />
+          <Select
+            style={{ width: "100%" }}
+            options={SampleModelUrls.map((url) => ({ label: url, value: url }))}
+            onChange={(e) => {
+              setDataUrl(e);
+            }}
+          />
+        </Modal>
       </nav>
-      <canvas ref={canvasRef} />
+      <canvas ref={canvasRef} tabIndex={1} />
     </div>
   );
 };

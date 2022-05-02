@@ -1,0 +1,17 @@
+export const SampleModelUrls = [
+  "https://spaice-cdn.ventmere.cn/files/0/TPT_Shape/2020/10/30/8db90112f39a49b099a8e6271495b672/Single_Door_mini1.glb",
+  "https://spaice-cdn.ventmere.cn/files/0/TPT_Shape/2021/1/22/e42dad87f89544fa9c96e62b85c3cebd/B001_2L_CL_CWY4_mini1.glb",
+  "https://spaice-cdn.ventmere.cn/files/0/TPT_Shape/2021/7/27/23ef596995984ccdaf5d822523f87d41/CH19722-BK_mini1.glb",
+  "https://spaice-cdn.ventmere.cn/files/0/TPT_Shape/2021/8/19/9f1b61d224b64ac0845e8e29eab9769c/VA3136_01.glb",
+  "https://spaice-cdn.ventmere.cn/files/0/TPT_Shape/2021/11/26/e20a1642cc094c2f8df2de8f53290af9/DS_DE12H_mini1.glb",
+  "https://spaice-cdn.ventmere.cn/files/0/TPT_Shape/2021/8/19/9f1b61d224b64ac0845e8e29eab9769c/VA3136_02.glb",
+  "https://spaice-cdn.ventmere.cn/files/0/TPT_Shape/2021/11/30/a8e2bc466d7b46c3979fc981ef246cc4/CST243EF-01_mini1.glb",
+  "https://spaice-cdn.ventmere.cn/files/0/TPT_Shape/2021/12/2/61fe8f706bbd4059b6d6470655a7002c/K-24010-0_mini1.glb",
+  "https://spaice-cdn.ventmere.cn/files/0/TPT_Shape/2021/7/13/425c146da921468a8676473c8b0656e9/K-T97328-4-BN_mini1.glb",
+  "https://spaice-cdn.ventmere.cn/files/0/TPT_Shape/2021/7/21/85e39e2b1b0e4a608710beef77c563a8/134955_mini1.glb",
+  "https://spaice-cdn.ventmere.cn/files/0/TPT_Shape/2021/8/25/10e6618dd50d4b2da931a7678c983ecc/FGID2466F_mini1.glb",
+  "https://spaice-cdn.ventmere.cn/files/0/TPT_Shape/2021/11/22/5f0c3a03a13148fcbb468667e419d012/PCFG307F_mini1.glb",
+  "https://spaice-cdn.ventmere.cn/files/0/TPT_Shape/2021/8/27/a10bad65f5cc4faa83fc11c481bbca36/FHWC3655S_mini1.glb",
+  "https://spaice-cdn.ventmere.cn/files/0/TPT_Shape/2021/8/26/ee0503ba696047bba8d7820b928b739c/FGHB286F_mini1.glb",
+  "https://spaice-cdn.ventmere.cn/files/0/TPT_Shape/2021/3/22/715b3fb2a7814b339144fbe792ee6aa7/LPC4255_mini1.glb",
+];

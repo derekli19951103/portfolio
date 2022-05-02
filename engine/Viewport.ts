@@ -7,6 +7,7 @@ import {
   GridHelper,
   HalfFloatType,
   HemisphereLight,
+  LinearMipmapLinearFilter,
   Mesh,
   MeshBasicMaterial,
   PerspectiveCamera,
@@ -23,7 +24,7 @@ import {
   WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
-import { TransformControls } from "three/examples/jsm/controls/TransformControls";
+import { TransformControls } from "../engine/three/TransformControls";
 import TNode from "./TNode";
 
 export default class Viewport {
@@ -80,6 +81,8 @@ export default class Viewport {
 
     this.camera.position.set(5, 5, 5);
 
+    this.scene.add(this.camera);
+
     canvas.addEventListener(
       "mousemove",
       (e) => {
@@ -90,11 +93,15 @@ export default class Viewport {
     );
 
     this.orbitControls = new OrbitControls(this.camera, canvas);
+    this.orbitControls.listenToKeyEvents(canvas);
+    this.orbitControls.keyPanSpeed = 100;
+
     this.transformControls = new TransformControls(this.camera, canvas);
 
     this.transformControls.addEventListener("dragging-changed", (e) => {
       this.transforming = e.value;
       this.orbitControls.enabled = !e.value;
+      console.log(e);
     });
 
     this.scene.add(this.transformControls);
@@ -179,6 +186,25 @@ export default class Viewport {
       this.orbitControls.enabled = true;
     });
 
+    canvas.addEventListener("keydown", (e) => {
+      if (this.selectedNodes.length > 0) {
+        switch (e.code) {
+          case "KeyR": {
+            this.transformControls.setMode("rotate");
+            this.transformControls.showX = false;
+            this.transformControls.showZ = false;
+            break;
+          }
+          case "KeyT": {
+            this.transformControls.setMode("translate");
+            this.transformControls.showX = true;
+            this.transformControls.showZ = true;
+            break;
+          }
+        }
+      }
+    });
+
     const hemiLight = new HemisphereLight(0xffeeb1, 0x080820, 4);
     this.scene.add(hemiLight);
 
@@ -191,10 +217,15 @@ export default class Viewport {
       "/textures/sky/back.jpg",
     ]);
 
-    this.cubeRenderTarget = new WebGLCubeRenderTarget(256);
-    this.cubeRenderTarget.texture.type = HalfFloatType;
+    this.cubeRenderTarget = new WebGLCubeRenderTarget(256, {
+      generateMipmaps: true,
+      minFilter: LinearMipmapLinearFilter,
+    });
+    // this.cubeRenderTarget.texture.type = HalfFloatType;
 
     this.cubeCamera = new CubeCamera(1, 1000, this.cubeRenderTarget);
+
+    this.scene.add(this.cubeCamera);
 
     const textureLoader = new TextureLoader();
     const texture = textureLoader.load("/textures/gp.png");
