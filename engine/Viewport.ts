@@ -191,13 +191,17 @@ export default class Viewport {
         switch (e.code) {
           case "KeyR": {
             this.transformControls.setMode("rotate");
+            //@ts-ignore
             this.transformControls.showX = false;
+            //@ts-ignore
             this.transformControls.showZ = false;
             break;
           }
           case "KeyT": {
             this.transformControls.setMode("translate");
+            //@ts-ignore
             this.transformControls.showX = true;
+            //@ts-ignore
             this.transformControls.showZ = true;
             break;
           }
