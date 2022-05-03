@@ -74,12 +74,7 @@ export const Canvas = () => {
   const addNormalObj = () => {
     if (gl) {
       const geometry = new PlaneGeometry(5, 5, 100, 100);
-      const material = new MeshStandardMaterial({
-        envMap: gl.cubeRenderTarget.texture,
-        roughness: 0.05,
-        metalness: 1,
-        side: DoubleSide,
-      });
+
       const sphere = new Reflector(geometry, {
         clipBias: 0.003,
         textureWidth: gl.width * window.devicePixelRatio,

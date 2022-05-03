@@ -844,7 +844,7 @@ class TransformControlsGizmo extends Object3D {
 
 		function CircleGeometry( radius, arc ) {
 
-			const geometry = new TorusGeometry( radius, 0.0075, 3, 64, arc * Math.PI * 2 );
+			const geometry = new TorusGeometry( radius, 0.015, 3, 64, arc * Math.PI * 2 );
 			geometry.rotateY( Math.PI / 2 );
 			geometry.rotateX( Math.PI / 2 );
 			return geometry;
@@ -951,7 +951,10 @@ class TransformControlsGizmo extends Object3D {
 				[ new Mesh( CircleGeometry( 0.5, 0.5 ), matRed ) ]
 			],
 			Y: [
-				[ new Mesh( CircleGeometry( 0.5, 0.5 ), matGreen ), null, [ 0, 0, - Math.PI / 2 ]]
+				[ new Mesh( arrowGeometry, matGreen ), [ 0.14, 0, 0.49 ], [ 0,  Math.PI / 4 - Math.PI / 8, - Math.PI / 2 ]],
+				[ new Mesh( CircleGeometry( 0.5, 0.125 ), matGreen ), null, [ 0, - Math.PI / 4 - Math.PI / 8, - Math.PI / 2 ]],
+				[ new Mesh( arrowGeometry, matGreen ), [ -0.14, 0, 0.49  ], [ 0,  3 * Math.PI / 4 + Math.PI / 8, - Math.PI / 2 ]],
+				
 			],
 			Z: [
 				[ new Mesh( CircleGeometry( 0.5, 0.5 ), matBlue ), null, [ 0, Math.PI / 2, 0 ]]

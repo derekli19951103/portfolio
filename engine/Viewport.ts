@@ -54,8 +54,6 @@ export default class Viewport {
   private dragStartPoint: Vector3 = new Vector3();
   private dragNodesInitPos: Vector3[] = [];
 
-  private transforming: boolean = false;
-
   cubeRenderTarget: WebGLCubeRenderTarget;
   cubeCamera: CubeCamera;
 
@@ -99,7 +97,6 @@ export default class Viewport {
     this.transformControls = new TransformControls(this.camera, canvas);
 
     this.transformControls.addEventListener("dragging-changed", (e) => {
-      this.transforming = e.value;
       this.orbitControls.enabled = !e.value;
       console.log(e);
     });
@@ -165,7 +162,7 @@ export default class Viewport {
         this.gridPlanePointerIntersect
       );
 
-      if (this.dragging && !this.transforming) {
+      if (this.dragging && !this.transformControls.dragging) {
         const diff = new Vector3().subVectors(
           this.gridPlanePointerIntersect,
           this.dragStartPoint
