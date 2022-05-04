@@ -21,9 +21,13 @@ import TNode from "../engine/TNode";
 import Viewport from "../engine/Viewport";
 import { useViewports } from "../store/viewports";
 import { Reflector } from "three/examples/jsm/objects/Reflector";
+import Stats from "three/examples/jsm/libs/stats.module";
 
 export const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const statsRef = useRef<HTMLDivElement>(null);
+
   const { viewports, setViewports } = useViewports();
   const gl = viewports.viewport1;
   const [dataUrl, setDataUrl] = useState("");
@@ -124,9 +128,15 @@ export const Canvas = () => {
 
   useEffect(() => {
     if (canvasRef.current) {
-      setViewports({ viewport1: new Viewport(canvasRef.current) });
+      //@ts-ignore
+      const stats: Stats = new Stats();
+
+      statsRef.current?.appendChild(stats.dom);
+      setViewports({
+        viewport1: new Viewport({ canvas: canvasRef.current, stats }),
+      });
     }
-  }, [canvasRef]);
+  }, []);
 
   useEffect(() => {
     if (gl) {
@@ -138,48 +148,51 @@ export const Canvas = () => {
    * Render
    */
   return (
-    <div style={{ width: "100vw", height: "100vh" }}>
-      <nav className="nav" style={{ position: "absolute" }}>
-        <Button className="btn" onClick={addCustomShaderObj}>
-          Add Custom Shader Obj
-        </Button>
-        <Button className="btn" onClick={addNormalObj}>
-          Add Mirror
-        </Button>
-        <Button className="btn" onClick={addGLB}>
-          Add GLB
-        </Button>
-        <Button
-          onClick={() => {
-            setOpen(true);
-          }}
-        >
-          Add Url
-        </Button>
-        <Modal
-          title="Add Model Url"
-          visible={open}
-          onCancel={() => {
-            setOpen(false);
-          }}
-          onOk={addUrl}
-        >
-          <Input
-            value={dataUrl}
-            onChange={(e) => {
-              setDataUrl(e.target.value);
+    <>
+      <div style={{ width: "100vw", height: "100vh" }}>
+        <nav className="nav" style={{ position: "absolute" }}>
+          <Button className="btn" onClick={addCustomShaderObj}>
+            Add Custom Shader Obj
+          </Button>
+          <Button className="btn" onClick={addNormalObj}>
+            Add Mirror
+          </Button>
+          <Button className="btn" onClick={addGLB}>
+            Add GLB
+          </Button>
+          <Button
+            onClick={() => {
+              setOpen(true);
             }}
-          />
-          <Select
-            style={{ width: "100%" }}
-            options={SampleModelUrls.map((url) => ({ label: url, value: url }))}
-            onChange={(e) => {
-              setDataUrl(e);
-            }}
-          />
-        </Modal>
-      </nav>
-      <canvas ref={canvasRef} tabIndex={1} />
-    </div>
+          >
+            Add Url
+          </Button>
+          <div ref={statsRef} />
+        </nav>
+        <canvas ref={canvasRef} tabIndex={1} />
+      </div>
+      <Modal
+        title="Add Model Url"
+        visible={open}
+        onCancel={() => {
+          setOpen(false);
+        }}
+        onOk={addUrl}
+      >
+        <Input
+          value={dataUrl}
+          onChange={(e) => {
+            setDataUrl(e.target.value);
+          }}
+        />
+        <Select
+          style={{ width: "100%" }}
+          options={SampleModelUrls.map((url) => ({ label: url, value: url }))}
+          onChange={(e) => {
+            setDataUrl(e);
+          }}
+        />
+      </Modal>
+    </>
   );
 };

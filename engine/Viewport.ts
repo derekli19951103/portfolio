@@ -24,6 +24,7 @@ import {
   WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import Stats from "three/examples/jsm/libs/stats.module";
 import { TransformControls } from "../engine/three/TransformControls";
 import TNode from "./TNode";
 
@@ -54,10 +55,18 @@ export default class Viewport {
   private dragStartPoint: Vector3 = new Vector3();
   private dragNodesInitPos: Vector3[] = [];
 
-  cubeRenderTarget: WebGLCubeRenderTarget;
-  cubeCamera: CubeCamera;
+  private stats: Stats;
 
-  constructor(canvas: HTMLCanvasElement, width?: number, height?: number) {
+  constructor(props: {
+    canvas: HTMLCanvasElement;
+    width?: number;
+    height?: number;
+    stats?: any;
+  }) {
+    const { canvas, width, height, stats } = props;
+
+    this.stats = stats;
+
     this.scene = new Scene();
     this.renderer = new WebGLRenderer({
       canvas,
@@ -218,16 +227,6 @@ export default class Viewport {
       "/textures/sky/back.jpg",
     ]);
 
-    this.cubeRenderTarget = new WebGLCubeRenderTarget(256, {
-      generateMipmaps: true,
-      minFilter: LinearMipmapLinearFilter,
-    });
-    // this.cubeRenderTarget.texture.type = HalfFloatType;
-
-    this.cubeCamera = new CubeCamera(1, 1000, this.cubeRenderTarget);
-
-    this.scene.add(this.cubeCamera);
-
     const textureLoader = new TextureLoader();
     const texture = textureLoader.load("/textures/gp.png");
     texture.wrapS = RepeatWrapping;
@@ -284,7 +283,7 @@ export default class Viewport {
 
   render() {
     this.raycaster.setFromCamera(this.pointer, this.camera);
-    this.cubeCamera.update(this.renderer, this.scene);
+    this.stats.update();
     this.renderer.render(this.scene, this.camera);
     this.nodes.forEach((n) => {
       const subsets: Mesh[] = [];
