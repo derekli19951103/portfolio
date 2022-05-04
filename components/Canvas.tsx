@@ -1,4 +1,4 @@
-import { Button, Input, Modal, Select } from "antd";
+import { Button, Col, Input, Modal, Row, Select } from "antd";
 import { useEffect, useRef, useState } from "react";
 import {
   Color,
@@ -132,6 +132,7 @@ export const Canvas = () => {
       const stats: Stats = new Stats();
 
       statsRef.current?.appendChild(stats.dom);
+
       setViewports({
         viewport1: new Viewport({ canvas: canvasRef.current, stats }),
       });
@@ -149,6 +150,12 @@ export const Canvas = () => {
    */
   return (
     <>
+      <style>{`
+        .statsContainer div {
+         right: 0;
+         left: unset !important;
+        }
+      `}</style>
       <div style={{ width: "100vw", height: "100vh" }}>
         <nav className="nav" style={{ position: "absolute" }}>
           <Button className="btn" onClick={addCustomShaderObj}>
@@ -167,7 +174,8 @@ export const Canvas = () => {
           >
             Add Url
           </Button>
-          <div ref={statsRef} />
+
+          <div ref={statsRef} className="statsContainer" />
         </nav>
         <canvas ref={canvasRef} tabIndex={1} />
       </div>

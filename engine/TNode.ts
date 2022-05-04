@@ -31,7 +31,7 @@ export default class TNode {
 
   collisionMesh: Mesh;
 
-  private _isRayCasted: boolean = false;
+  isRayCasted: boolean = false;
   private _isHovered: boolean = false;
   private _isSelected: boolean = false;
 
@@ -195,7 +195,7 @@ export default class TNode {
     this.collisionMesh = new Mesh(collionGeo);
 
     this.collisionMesh.visible = false;
-    this.object.add(this.collisionMesh);
+    // this.object.add(this.collisionMesh);
   }
 
   get isHovered() {
@@ -227,13 +227,5 @@ export default class TNode {
       this.bboxWire.material = this.hoverColor;
       this.viewport.disableTransformControls();
     }
-  }
-
-  get isRayCasted() {
-    return this._isRayCasted;
-  }
-
-  set isRayCasted(rayCasted: boolean) {
-    this._isRayCasted = rayCasted;
   }
 }

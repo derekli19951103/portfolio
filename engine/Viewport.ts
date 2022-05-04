@@ -1,13 +1,9 @@
 import {
   ACESFilmicToneMapping,
   Color,
-  CubeCamera,
   CubeTextureLoader,
-  EquirectangularReflectionMapping,
   GridHelper,
-  HalfFloatType,
   HemisphereLight,
-  LinearMipmapLinearFilter,
   Mesh,
   MeshBasicMaterial,
   PerspectiveCamera,
@@ -20,10 +16,9 @@ import {
   TextureLoader,
   Vector2,
   Vector3,
-  WebGLCubeRenderTarget,
   WebGLRenderer,
 } from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
+import { OrbitControls } from "../engine/three/OrbitControls";
 import Stats from "three/examples/jsm/libs/stats.module";
 import { TransformControls } from "../engine/three/TransformControls";
 import TNode from "./TNode";
@@ -101,7 +96,16 @@ export default class Viewport {
 
     this.orbitControls = new OrbitControls(this.camera, canvas);
     this.orbitControls.listenToKeyEvents(canvas);
-    this.orbitControls.keyPanSpeed = 100;
+    this.orbitControls.panSpeed = 2;
+    this.orbitControls.screenSpacePanning = false;
+    this.orbitControls.keys = {
+      LEFT: "KeyA",
+      UP: "KeyW",
+      RIGHT: "KeyD",
+      BOTTOM: "KeyS",
+    };
+    // this.orbitControls.enableDamping = true;
+    // this.orbitControls.dampingFactor = 0.1;
 
     this.transformControls = new TransformControls(this.camera, canvas);
 
@@ -284,12 +288,13 @@ export default class Viewport {
   render() {
     this.raycaster.setFromCamera(this.pointer, this.camera);
     this.stats.update();
-    this.renderer.render(this.scene, this.camera);
+    this.orbitControls.update();
+
     this.nodes.forEach((n) => {
       const subsets: Mesh[] = [];
       n.object.traverse((o) => {
         //@ts-ignore
-        if (o.isMesh) {
+        if (!o.isLineSegments2 && o.isMesh) {
           subsets.push(o as Mesh);
         }
       });
@@ -308,6 +313,7 @@ export default class Viewport {
       }
     });
 
+    this.renderer.render(this.scene, this.camera);
     requestAnimationFrame(this.render.bind(this));
   }
 }
