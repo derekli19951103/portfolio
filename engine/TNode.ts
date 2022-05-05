@@ -102,7 +102,7 @@ export default class TNode {
               case ".gltf":
               case ".glb":
                 (object as GLTF).scene.traverse((child) => {
-                  const pos = child.position.clone();
+                  const pos = child.position;
                   const matrix = new Matrix4().makeTranslation(
                     -pos.x,
                     -pos.y,

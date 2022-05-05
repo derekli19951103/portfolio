@@ -1,5 +1,6 @@
 import {
   ACESFilmicToneMapping,
+  Clock,
   Color,
   CubeTextureLoader,
   GridHelper,
@@ -98,14 +99,9 @@ export default class Viewport {
     this.orbitControls.listenToKeyEvents(canvas);
     this.orbitControls.panSpeed = 2;
     this.orbitControls.screenSpacePanning = false;
-    this.orbitControls.keys = {
-      LEFT: "KeyA",
-      UP: "KeyW",
-      RIGHT: "KeyD",
-      BOTTOM: "KeyS",
-    };
-    // this.orbitControls.enableDamping = true;
-    // this.orbitControls.dampingFactor = 0.1;
+    this.orbitControls.keyPanSpeed = 50;
+    this.orbitControls.enableDamping = true;
+    this.orbitControls.dampingFactor = 0.075;
 
     this.transformControls = new TransformControls(this.camera, canvas);
 
@@ -196,28 +192,28 @@ export default class Viewport {
       this.orbitControls.enabled = true;
     });
 
-    canvas.addEventListener("keydown", (e) => {
-      if (this.selectedNodes.length > 0) {
-        switch (e.code) {
-          case "KeyR": {
-            this.transformControls.setMode("rotate");
-            //@ts-ignore
-            this.transformControls.showX = false;
-            //@ts-ignore
-            this.transformControls.showZ = false;
-            break;
-          }
-          case "KeyT": {
-            this.transformControls.setMode("translate");
-            //@ts-ignore
-            this.transformControls.showX = true;
-            //@ts-ignore
-            this.transformControls.showZ = true;
-            break;
-          }
-        }
-      }
-    });
+    // canvas.addEventListener("keydown", (e) => {
+    //   if (this.selectedNodes.length > 0) {
+    //     switch (e.code) {
+    //       case "KeyR": {
+    //         this.transformControls.setMode("rotate");
+    //         //@ts-ignore
+    //         this.transformControls.showX = false;
+    //         //@ts-ignore
+    //         this.transformControls.showZ = false;
+    //         break;
+    //       }
+    //       case "KeyT": {
+    //         this.transformControls.setMode("translate");
+    //         //@ts-ignore
+    //         this.transformControls.showX = true;
+    //         //@ts-ignore
+    //         this.transformControls.showZ = true;
+    //         break;
+    //       }
+    //     }
+    //   }
+    // });
 
     const hemiLight = new HemisphereLight(0xffeeb1, 0x080820, 4);
     this.scene.add(hemiLight);
@@ -288,6 +284,7 @@ export default class Viewport {
   render() {
     this.raycaster.setFromCamera(this.pointer, this.camera);
     this.stats.update();
+
     this.orbitControls.update();
 
     this.nodes.forEach((n) => {
