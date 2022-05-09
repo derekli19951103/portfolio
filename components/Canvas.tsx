@@ -1,6 +1,7 @@
 import { Button, Col, Input, Modal, Row, Select } from "antd";
 import { useEffect, useRef, useState } from "react";
 import {
+  BufferGeometry,
   Color,
   CubeCamera,
   DoubleSide,
@@ -17,7 +18,7 @@ import {
   WebGLCubeRenderTarget,
 } from "three";
 import { SampleModelUrls } from "../constant/ModelURL";
-import TNode from "../engine/TNode";
+import ThreeDNode from "../engine/ThreeDNode";
 import Viewport from "../engine/Viewport";
 import { useViewports } from "../store/viewports";
 import { Reflector } from "three/examples/jsm/objects/Reflector";
@@ -62,7 +63,7 @@ export const Canvas = () => {
       mesh.castShadow = true;
       mesh.receiveShadow = true;
 
-      const node = new TNode(gl, mesh);
+      const node = new ThreeDNode(gl, mesh);
 
       const size = new Vector3();
 
@@ -85,7 +86,7 @@ export const Canvas = () => {
         textureHeight: gl.height * window.devicePixelRatio,
       });
 
-      const node = new TNode(gl, sphere);
+      const node = new ThreeDNode(gl, sphere);
 
       const size = new Vector3();
 
@@ -99,7 +100,7 @@ export const Canvas = () => {
 
   const addGLB = async () => {
     if (gl) {
-      const node = new TNode(gl);
+      const node = new ThreeDNode(gl);
 
       await node.load("/models/LCSHF30_mini1.glb");
 
@@ -115,7 +116,7 @@ export const Canvas = () => {
 
   const addUrl = async () => {
     if (gl) {
-      const node = new TNode(gl);
+      const node = new ThreeDNode(gl);
       await node.load(dataUrl);
       const size = new Vector3();
       node.bbox.getSize(size);
@@ -123,6 +124,36 @@ export const Canvas = () => {
       gl.add(node);
       setOpen(false);
       setDataUrl("");
+    }
+  };
+
+  const addHoleWall = () => {
+    if (gl) {
+      const geo = new BufferGeometry().setFromPoints([
+        new Vector3(2, 0, 2),
+        new Vector3(2, 0, -2),
+        new Vector3(-2, 0, -2),
+        new Vector3(-2, 0, 2),
+
+        new Vector3(1, 0, 1),
+        new Vector3(1, 0, -1),
+        new Vector3(-1, 0, -1),
+        new Vector3(-1, 0, 1),
+      ]);
+
+      geo.setIndex([
+        0, 1, 4, 4, 1, 5, 5, 1, 2, 2, 5, 6, 6, 2, 3, 3, 6, 7, 7, 3, 0, 0, 7, 4,
+      ]);
+
+      console.log(geo);
+
+      const mat = new MeshStandardMaterial({ color: "red" });
+
+      const mesh = new Mesh(geo, mat);
+
+      const node = new ThreeDNode(gl, mesh);
+
+      gl.add(node);
     }
   };
 
@@ -174,6 +205,8 @@ export const Canvas = () => {
           >
             Add Url
           </Button>
+
+          <Button onClick={addHoleWall}>Add</Button>
 
           <div ref={statsRef} className="statsContainer" />
         </nav>

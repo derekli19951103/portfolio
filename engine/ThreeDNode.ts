@@ -17,12 +17,12 @@ import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import Viewport from "./Viewport";
 
-export default class TNode {
+export default class ThreeDNode {
   viewport: Viewport;
 
-  parentNode: TNode | undefined;
+  parentNode: ThreeDNode | undefined;
   url: string | undefined;
-  children: TNode[] | undefined;
+  children: ThreeDNode[] | undefined;
 
   object: Mesh;
 
@@ -43,8 +43,8 @@ export default class TNode {
   constructor(
     viewport: Viewport,
     object?: Mesh,
-    parentNode?: TNode,
-    children?: TNode[]
+    parentNode?: ThreeDNode,
+    children?: ThreeDNode[]
   ) {
     this.parentNode = parentNode;
     this.children = children;
@@ -202,7 +202,11 @@ export default class TNode {
     return this._isHovered;
   }
 
-  set isHovered(hovered: boolean) {
+  get isSelected() {
+    return this._isSelected;
+  }
+
+  setHovered(hovered: boolean) {
     this._isHovered = hovered;
 
     if (hovered === true) {
@@ -212,11 +216,7 @@ export default class TNode {
     }
   }
 
-  get isSelected() {
-    return this._isSelected;
-  }
-
-  set isSelected(selected: boolean) {
+  setSelected(selected: boolean) {
     this._isSelected = selected;
 
     if (selected === true) {

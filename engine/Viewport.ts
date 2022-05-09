@@ -22,15 +22,15 @@ import {
 import { OrbitControls } from "../engine/three/OrbitControls";
 import Stats from "three/examples/jsm/libs/stats.module";
 import { TransformControls } from "../engine/three/TransformControls";
-import TNode from "./TNode";
+import ThreeDNode from "./ThreeDNode";
 
 export default class Viewport {
   scene: Scene;
   renderer: WebGLRenderer;
   camera: PerspectiveCamera;
 
-  nodes: TNode[] = [];
-  selectedNodes: TNode[] = [];
+  nodes: ThreeDNode[] = [];
+  selectedNodes: ThreeDNode[] = [];
 
   orbitControls: OrbitControls;
   transformControls: TransformControls;
@@ -107,7 +107,6 @@ export default class Viewport {
 
     this.transformControls.addEventListener("dragging-changed", (e) => {
       this.orbitControls.enabled = !e.value;
-      console.log(e);
     });
 
     this.scene.add(this.transformControls);
@@ -115,7 +114,7 @@ export default class Viewport {
     canvas.addEventListener("click", (e) => {
       if (!this.nodes.some((n) => n.isRayCasted)) {
         this.nodes.forEach((n) => {
-          n.isSelected = false;
+          n.setSelected(false);
         });
         this.selectedNodes = [];
       }
@@ -125,25 +124,25 @@ export default class Viewport {
             if (e.shiftKey) {
               if (!n.isSelected) {
                 this.selectedNodes.push(n);
-                n.isSelected = true;
+                n.setSelected(true);
               } else {
                 this.selectedNodes = this.selectedNodes.filter(
                   (sn) => sn !== n
                 );
-                n.isSelected = false;
+                n.setSelected(false);
               }
             } else {
               if (this.selectedNodes.length === 1) {
-                this.selectedNodes[0].isSelected = false;
+                this.selectedNodes[0].setSelected(false);
                 this.selectedNodes = [n];
-                n.isSelected = true;
+                n.setSelected(true);
               }
             }
           } else {
             if (!n.isSelected) {
               this.selectedNodes.push(n);
             }
-            n.isSelected = true;
+            n.setSelected(true);
           }
         }
       });
@@ -192,28 +191,28 @@ export default class Viewport {
       this.orbitControls.enabled = true;
     });
 
-    // canvas.addEventListener("keydown", (e) => {
-    //   if (this.selectedNodes.length > 0) {
-    //     switch (e.code) {
-    //       case "KeyR": {
-    //         this.transformControls.setMode("rotate");
-    //         //@ts-ignore
-    //         this.transformControls.showX = false;
-    //         //@ts-ignore
-    //         this.transformControls.showZ = false;
-    //         break;
-    //       }
-    //       case "KeyT": {
-    //         this.transformControls.setMode("translate");
-    //         //@ts-ignore
-    //         this.transformControls.showX = true;
-    //         //@ts-ignore
-    //         this.transformControls.showZ = true;
-    //         break;
-    //       }
-    //     }
-    //   }
-    // });
+    canvas.addEventListener("keydown", (e) => {
+      if (this.selectedNodes.length > 0) {
+        switch (e.code) {
+          case "KeyR": {
+            this.transformControls.setMode("rotate");
+            //@ts-ignore
+            this.transformControls.showX = false;
+            //@ts-ignore
+            this.transformControls.showZ = false;
+            break;
+          }
+          case "KeyT": {
+            this.transformControls.setMode("translate");
+            //@ts-ignore
+            this.transformControls.showX = true;
+            //@ts-ignore
+            this.transformControls.showZ = true;
+            break;
+          }
+        }
+      }
+    });
 
     const hemiLight = new HemisphereLight(0xffeeb1, 0x080820, 4);
     this.scene.add(hemiLight);
@@ -260,7 +259,7 @@ export default class Viewport {
     });
   }
 
-  add(...nodes: TNode[]) {
+  add(...nodes: ThreeDNode[]) {
     const objects = [];
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
@@ -273,7 +272,7 @@ export default class Viewport {
     this.scene.add(...objects);
   }
 
-  public enableTransformControls(node: TNode) {
+  public enableTransformControls(node: ThreeDNode) {
     this.transformControls.attach(node.object);
   }
 
@@ -300,12 +299,12 @@ export default class Viewport {
       if (intersect.length || subsetIntersect.length) {
         n.isRayCasted = true;
         if (!n.isSelected && !n.isHovered) {
-          n.isHovered = true;
+          n.setHovered(true);
         }
       } else {
         n.isRayCasted = false;
         if (!n.isSelected && n.isHovered) {
-          n.isHovered = false;
+          n.setHovered(false);
         }
       }
     });
