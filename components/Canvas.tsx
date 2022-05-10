@@ -1,16 +1,20 @@
 import { Button, Col, Input, Modal, Row, Select } from "antd";
 import { useEffect, useRef, useState } from "react";
 import {
+  BoxBufferGeometry,
   BufferGeometry,
   Color,
   CubeCamera,
+  CylinderGeometry,
   DoubleSide,
+  Float32BufferAttribute,
   HalfFloatType,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
   PlaneGeometry,
   ShaderMaterial,
+  SphereBufferGeometry,
   SphereGeometry,
   Texture,
   TorusKnotGeometry,
@@ -23,6 +27,10 @@ import Viewport from "../engine/Viewport";
 import { useViewports } from "../store/viewports";
 import { Reflector } from "three/examples/jsm/objects/Reflector";
 import Stats from "three/examples/jsm/libs/stats.module";
+import { CSG } from "../engine/three/CSG";
+import Flatten from "@flatten-js/core";
+
+const { Polygon, point } = Flatten;
 
 export const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -129,31 +137,64 @@ export const Canvas = () => {
 
   const addHoleWall = () => {
     if (gl) {
-      const geo = new BufferGeometry().setFromPoints([
-        new Vector3(2, 0, 2),
-        new Vector3(2, 0, -2),
-        new Vector3(-2, 0, -2),
-        new Vector3(-2, 0, 2),
+      const material = new MeshStandardMaterial({ color: "black" });
 
-        new Vector3(1, 0, 1),
-        new Vector3(1, 0, -1),
-        new Vector3(-1, 0, -1),
-        new Vector3(-1, 0, 1),
+      const box = new Mesh(new BoxBufferGeometry(0.3, 0.3, 1), material);
+
+      const sphere = new Mesh(new SphereBufferGeometry(0.2), material);
+      sphere.position.set(0, 0, 0.2);
+
+      const sphereB = sphere.clone();
+      sphereB.position.set(0, 0, -0.2);
+
+      const csg = new CSG();
+
+      csg.subtract([box, sphere, sphereB]);
+      // csg.union([box, sphere, sphereB]);
+      // csg.intersect([box, sphere]);
+
+      const resultMesh = csg.toMesh();
+
+      const node = new ThreeDNode(gl, resultMesh);
+
+      const poly = new Polygon([
+        point(1, 1),
+        point(2, 0),
+        point(1, -1),
+        point(-1, -1),
+        point(-2, 0),
+        point(-1, 1),
       ]);
 
-      geo.setIndex([
-        0, 1, 4, 4, 1, 5, 5, 1, 2, 2, 5, 6, 6, 2, 3, 3, 6, 7, 7, 3, 0, 0, 7, 4,
-      ]);
+      console.log(poly.vertices);
 
-      console.log(geo);
+      const height = 2;
 
-      const mat = new MeshStandardMaterial({ color: "red" });
+      const vertices = [
+        ...poly.vertices.map((v) => [v.x, 0, v.y]),
+        ...poly.vertices.map((v) => [v.x, height, v.y]),
+      ];
 
-      const mesh = new Mesh(geo, mat);
+      const points = [
+        ...poly.vertices.map(
+          (v) => new Vector3(v.x, 0, v.y),
+          ...poly.vertices.map((v) => new Vector3(v.x, height, v.y))
+        ),
+      ];
 
-      const node = new ThreeDNode(gl, mesh);
+      const geo = new BufferGeometry().setFromPoints(points);
 
-      gl.add(node);
+      geo.setAttribute(
+        "position",
+        new Float32BufferAttribute(([] as number[]).concat(...vertices), 3)
+      );
+      geo.computeVertexNormals();
+
+      const mesh = new Mesh(geo, material);
+
+      const node2 = new ThreeDNode(gl, mesh);
+
+      gl.add(node, node2);
     }
   };
 

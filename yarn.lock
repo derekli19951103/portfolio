@@ -78,6 +78,18 @@
     minimatch "^3.0.4"
     strip-json-comments "^3.1.1"
 
+"@flatten-js/core@^1.3.4":
+  version "1.3.4"
+  resolved "https://registry.yarnpkg.com/@flatten-js/core/-/core-1.3.4.tgz#f4ea927cacadf662f70c5ffaa93ca96791d0da40"
+  integrity sha512-VP8VYWMJPZDgNze83iS//sHHkQREtgtZ9VLn9SNX99FN49AIP/QhSeqkpW0/VPyFrUbrmkw8VumYkT09BH5bYg==
+  dependencies:
+    "@flatten-js/interval-tree" "^1.0.15"
+
+"@flatten-js/interval-tree@^1.0.15":
+  version "1.0.18"
+  resolved "https://registry.yarnpkg.com/@flatten-js/interval-tree/-/interval-tree-1.0.18.tgz#285c6d491e838ed0c60b7a4f143a5d20b7f41947"
+  integrity sha512-o72sZErW0Y1C82Cg7nk82ojJ/22EtmKyp5I3eNqgcOKFp/VCzetATYYjJIqOBBaR7FQ/MFj/ZpsmP38mL4TkYA==
+
 "@humanwhocodes/config-array@^0.9.2":
   version "0.9.2"
   resolved "https://registry.yarnpkg.com/@humanwhocodes/config-array/-/config-array-0.9.2.tgz#68be55c737023009dfc5fe245d51181bb6476914"
