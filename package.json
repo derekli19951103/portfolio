@@ -8,7 +8,6 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@flatten-js/core": "^1.3.4",
     "antd": "^4.20.2",
     "next": "^12.1.5",
     "react": "17.0.2",

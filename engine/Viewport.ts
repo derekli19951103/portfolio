@@ -1,15 +1,14 @@
 import {
   ACESFilmicToneMapping,
-  Clock,
-  Color,
+  AmbientLight,
   CubeTextureLoader,
-  GridHelper,
   HemisphereLight,
+  MathUtils,
   Mesh,
-  MeshBasicMaterial,
   PerspectiveCamera,
-  Plane,
-  PlaneBufferGeometry,
+  PlaneGeometry,
+  PMREMGenerator,
+  PointLight,
   Raycaster,
   RepeatWrapping,
   Scene,
@@ -19,37 +18,41 @@ import {
   Vector3,
   WebGLRenderer,
 } from "three";
-import { OrbitControls } from "../engine/three/OrbitControls";
 import Stats from "three/examples/jsm/libs/stats.module";
-import { TransformControls } from "../engine/three/TransformControls";
+import { OrbitControls } from "../engine/three/OrbitControls";
 import ThreeDNode from "./ThreeDNode";
+import { Water } from "three/examples/jsm/objects/Water.js";
+import { Sky } from "three/examples/jsm/objects/Sky.js";
+
+import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
+import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
+
+import { LuminosityShader } from "three/examples/jsm/shaders/LuminosityShader.js";
+import { SobelOperatorShader } from "three/examples/jsm/shaders/SobelOperatorShader.js";
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 
 export default class Viewport {
   scene: Scene;
   renderer: WebGLRenderer;
   camera: PerspectiveCamera;
 
+  water: Water;
+
+  composer: EffectComposer;
+  effectSobel: ShaderPass;
+
   nodes: ThreeDNode[] = [];
   selectedNodes: ThreeDNode[] = [];
 
   orbitControls: OrbitControls;
-  transformControls: TransformControls;
-
-  grid: GridHelper;
-  gridPlane: Plane = new Plane(new Vector3(0, 1, 0), 0);
 
   raycaster: Raycaster = new Raycaster();
   pointer: Vector2 = new Vector2();
 
-  gridPlanePointerIntersect = new Vector3();
-
   width: number;
   height: number;
   private fixed: boolean = false;
-
-  private dragging: boolean = false;
-  private dragStartPoint: Vector3 = new Vector3();
-  private dragNodesInitPos: Vector3[] = [];
 
   private stats: Stats;
 
@@ -71,7 +74,6 @@ export default class Viewport {
 
     this.renderer.outputEncoding = sRGBEncoding;
     this.renderer.setPixelRatio(window.devicePixelRatio);
-    this.renderer.shadowMap.enabled = true;
     this.renderer.toneMapping = ACESFilmicToneMapping;
 
     this.width = width || window.innerWidth;
@@ -80,9 +82,15 @@ export default class Viewport {
       this.fixed = true;
     }
 
-    this.camera = new PerspectiveCamera(45, this.width / this.height, 0.1, 600);
+    this.renderer.setSize(this.width, this.height);
 
-    this.camera.position.set(5, 5, 5);
+    this.camera = new PerspectiveCamera(55, this.width / this.height, 1, 20000);
+
+    this.camera.position.set(
+      -37.63845609168892,
+      11.445537360330965,
+      66.4119497286622
+    );
 
     this.scene.add(this.camera);
 
@@ -97,19 +105,10 @@ export default class Viewport {
 
     this.orbitControls = new OrbitControls(this.camera, canvas);
     this.orbitControls.listenToKeyEvents(canvas);
-    this.orbitControls.panSpeed = 2;
-    this.orbitControls.screenSpacePanning = false;
-    this.orbitControls.keyPanSpeed = 50;
-    this.orbitControls.enableDamping = true;
-    this.orbitControls.dampingFactor = 0.075;
-
-    this.transformControls = new TransformControls(this.camera, canvas);
-
-    this.transformControls.addEventListener("dragging-changed", (e) => {
-      this.orbitControls.enabled = !e.value;
-    });
-
-    this.scene.add(this.transformControls);
+    this.orbitControls.maxPolarAngle = Math.PI * 0.495;
+    this.orbitControls.minDistance = 40.0;
+    this.orbitControls.maxDistance = 200.0;
+    // this.orbitControls.enablePan = false;
 
     canvas.addEventListener("click", (e) => {
       if (!this.nodes.some((n) => n.isRayCasted)) {
@@ -148,103 +147,62 @@ export default class Viewport {
       });
     });
 
-    canvas.addEventListener("mousedown", (e) => {
-      if (
-        this.selectedNodes.length > 0 &&
-        this.selectedNodes.some((n) => n.isRayCasted)
-      ) {
-        this.dragging = true;
-        this.orbitControls.enabled = false;
+    const waterGeometry = new PlaneGeometry(10000, 10000);
 
-        this.raycaster.ray.intersectPlane(this.gridPlane, this.dragStartPoint);
-
-        this.dragNodesInitPos = this.selectedNodes.map((n) =>
-          n.object.position.clone()
-        );
-      }
-    });
-
-    canvas.addEventListener("mousemove", () => {
-      this.raycaster.ray.intersectPlane(
-        this.gridPlane,
-        this.gridPlanePointerIntersect
-      );
-
-      if (this.dragging && !this.transformControls.dragging) {
-        const diff = new Vector3().subVectors(
-          this.gridPlanePointerIntersect,
-          this.dragStartPoint
-        );
-
-        this.selectedNodes.forEach((node, i) => {
-          node.object.position.set(
-            diff.x + this.dragNodesInitPos[i].x,
-            diff.y + this.dragNodesInitPos[i].y,
-            diff.z + this.dragNodesInitPos[i].z
-          );
-        });
-      }
-    });
-
-    canvas.addEventListener("mouseup", (e) => {
-      this.dragging = false;
-      this.orbitControls.enabled = true;
-    });
-
-    canvas.addEventListener("keydown", (e) => {
-      if (this.selectedNodes.length > 0) {
-        switch (e.code) {
-          case "KeyR": {
-            this.transformControls.setMode("rotate");
-            //@ts-ignore
-            this.transformControls.showX = false;
-            //@ts-ignore
-            this.transformControls.showZ = false;
-            break;
-          }
-          case "KeyT": {
-            this.transformControls.setMode("translate");
-            //@ts-ignore
-            this.transformControls.showX = true;
-            //@ts-ignore
-            this.transformControls.showZ = true;
-            break;
-          }
+    this.water = new Water(waterGeometry, {
+      textureWidth: 512,
+      textureHeight: 512,
+      waterNormals: new TextureLoader().load(
+        "textures/waternormals.jpg",
+        function (texture) {
+          texture.wrapS = texture.wrapT = RepeatWrapping;
         }
-      }
+      ),
+      sunDirection: new Vector3(),
+      sunColor: 0xffffff,
+      waterColor: 0x001e0f,
+      distortionScale: 1,
+      fog: this.scene.fog !== undefined,
     });
 
-    const hemiLight = new HemisphereLight(0xffeeb1, 0x080820, 4);
-    this.scene.add(hemiLight);
+    this.water.rotation.x = -Math.PI / 2;
 
-    this.scene.background = new CubeTextureLoader().load([
-      "/textures/sky/right.jpg",
-      "/textures/sky/left.jpg",
-      "/textures/sky/top.jpg",
-      "/textures/sky/bottom.jpg",
-      "/textures/sky/front.jpg",
-      "/textures/sky/back.jpg",
-    ]);
+    this.scene.add(this.water);
 
-    const textureLoader = new TextureLoader();
-    const texture = textureLoader.load("/textures/gp.png");
-    texture.wrapS = RepeatWrapping;
-    texture.wrapT = RepeatWrapping;
-    texture.repeat.set(50, 50);
-    const geo = new PlaneBufferGeometry(200, 200, 1, 1);
-    this.grid = new GridHelper(200, 200);
-    const ground = new Mesh(
-      geo,
-      new MeshBasicMaterial({
-        color: new Color(0xcccccc),
-      })
+    const ambientLight = new AmbientLight(0xcccccc, 0.4);
+    this.scene.add(ambientLight);
+
+    const pointLight = new PointLight(0xffffff, 0.8);
+    this.camera.add(pointLight);
+
+    this.composer = new EffectComposer(this.renderer);
+    const renderPass = new RenderPass(this.scene, this.camera);
+    this.composer.addPass(renderPass);
+
+    // color to grayscale conversion
+
+    const effectGrayScale = new ShaderPass(LuminosityShader);
+    this.composer.addPass(effectGrayScale);
+
+    // you might want to use a gaussian blur filter before
+    // the next pass to improve the result of the Sobel operator
+
+    // Sobel operator
+
+    this.effectSobel = new ShaderPass(SobelOperatorShader);
+    this.effectSobel.uniforms["resolution"].value.x =
+      window.innerWidth * window.devicePixelRatio;
+    this.effectSobel.uniforms["resolution"].value.y =
+      window.innerHeight * window.devicePixelRatio;
+    this.composer.addPass(this.effectSobel);
+
+    const bloomPass = new UnrealBloomPass(
+      new Vector2(this.width, this.height),
+      2,
+      1,
+      0.4
     );
-    ground.receiveShadow = true;
-    ground.position.y -= 0.2;
-    ground.rotation.x -= Math.PI / 2;
-    this.scene.add(this.grid, ground);
-
-    this.renderer.setSize(this.width, this.height);
+    this.composer.addPass(bloomPass);
 
     window.addEventListener("resize", () => {
       if (!this.fixed) {
@@ -255,6 +213,12 @@ export default class Viewport {
         this.camera.updateProjectionMatrix();
 
         this.renderer.setSize(this.width, this.height);
+        this.composer.setSize(this.width, this.height);
+
+        this.effectSobel.uniforms["resolution"].value.x =
+          this.width * window.devicePixelRatio;
+        this.effectSobel.uniforms["resolution"].value.y =
+          this.height * window.devicePixelRatio;
       }
     });
   }
@@ -272,17 +236,12 @@ export default class Viewport {
     this.scene.add(...objects);
   }
 
-  public enableTransformControls(node: ThreeDNode) {
-    this.transformControls.attach(node.object);
-  }
-
-  public disableTransformControls() {
-    this.transformControls.detach();
-  }
-
   render() {
     this.raycaster.setFromCamera(this.pointer, this.camera);
     this.stats.update();
+    this.water.material.uniforms["time"].value += 1.0 / 60.0;
+
+    console.log(this.camera);
 
     this.orbitControls.update();
 
@@ -290,7 +249,7 @@ export default class Viewport {
       const subsets: Mesh[] = [];
       n.object.traverse((o) => {
         //@ts-ignore
-        if (!o.isLineSegments2 && o.isMesh) {
+        if (o.isMesh) {
           subsets.push(o as Mesh);
         }
       });
@@ -309,7 +268,8 @@ export default class Viewport {
       }
     });
 
-    this.renderer.render(this.scene, this.camera);
+    // this.renderer.render(this.scene, this.camera);
+    this.composer.render();
     requestAnimationFrame(this.render.bind(this));
   }
 }
