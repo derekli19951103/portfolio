@@ -12,6 +12,7 @@ import {
   Raycaster,
   RepeatWrapping,
   Scene,
+  ShaderMaterial,
   sRGBEncoding,
   TextureLoader,
   Vector2,
@@ -85,11 +86,7 @@ export default class Viewport {
 
     this.camera = new PerspectiveCamera(55, this.width / this.height, 1, 20000);
 
-    this.camera.position.set(
-      -37.63845609168892,
-      11.445537360330965,
-      66.4119497286622
-    );
+    this.camera.position.set(-30, 12, 70);
 
     this.scene.add(this.camera);
 
@@ -107,7 +104,7 @@ export default class Viewport {
     this.orbitControls.maxPolarAngle = Math.PI * 0.495;
     this.orbitControls.minDistance = 40.0;
     this.orbitControls.maxDistance = 200.0;
-    // this.orbitControls.enablePan = false;
+    this.orbitControls.enablePan = false;
 
     canvas.addEventListener("click", (e) => {
       if (!this.nodes.some((n) => n.isRayCasted)) {
@@ -119,22 +116,12 @@ export default class Viewport {
       this.nodes.forEach((n) => {
         if (n.isRayCasted) {
           if (this.selectedNodes.length >= 1) {
-            if (e.shiftKey) {
-              if (!n.isSelected) {
-                this.selectedNodes.push(n);
-                n.setSelected(true);
-              } else {
-                this.selectedNodes = this.selectedNodes.filter(
-                  (sn) => sn !== n
-                );
-                n.setSelected(false);
-              }
+            if (!n.isSelected) {
+              this.selectedNodes.push(n);
+              n.setSelected(true);
             } else {
-              if (this.selectedNodes.length === 1) {
-                this.selectedNodes[0].setSelected(false);
-                this.selectedNodes = [n];
-                n.setSelected(true);
-              }
+              this.selectedNodes = this.selectedNodes.filter((sn) => sn !== n);
+              n.setSelected(false);
             }
           } else {
             if (!n.isSelected) {
@@ -144,6 +131,13 @@ export default class Viewport {
           }
         }
       });
+    });
+
+    canvas.addEventListener("contextmenu", (e) => {
+      this.nodes.forEach((n) => {
+        n.setSelected(false);
+      });
+      this.selectedNodes = [];
     });
 
     this.scene.background = new CubeTextureLoader().load([
@@ -201,7 +195,7 @@ export default class Viewport {
 
     const bloomPass = new UnrealBloomPass(
       new Vector2(this.width, this.height),
-      2,
+      1,
       1,
       0.4
     );
@@ -243,12 +237,32 @@ export default class Viewport {
     this.scene.add(...objects);
   }
 
+  animateName() {
+    const time = Date.now() * 0.001;
+    this.nodes.forEach((n) => {
+      if (n.object) {
+        if (n.object.userData.isName) {
+          if (n.isHovered) {
+            (n.object.material as ShaderMaterial).uniforms.amplitude.value =
+              Math.max(0.05, 1.0 + Math.sin(time * 0.5));
+          } else {
+            (n.object.material as ShaderMaterial).uniforms.amplitude.value = 0;
+          }
+        }
+      }
+    });
+  }
+
   render() {
     this.raycaster.setFromCamera(this.pointer, this.camera);
     this.stats.update();
     this.water.material.uniforms["time"].value += 1.0 / 60.0;
 
-    // console.log(this.camera);
+    // console.log(this.camera.position);
+    // console.log(this.camera.rotation.x);
+    // console.log(this.camera.rotation.y);
+    // console.log(this.camera.rotation.z);
+    this.animateName();
 
     this.orbitControls.update();
 
