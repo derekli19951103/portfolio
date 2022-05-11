@@ -162,7 +162,7 @@ export default class Viewport {
       textureWidth: 512,
       textureHeight: 512,
       waterNormals: new TextureLoader().load(
-        "textures/waternormals.jpg",
+        "/textures/waternormals.jpg",
         (texture) => {
           texture.wrapS = texture.wrapT = RepeatWrapping;
         }
