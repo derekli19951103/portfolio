@@ -44,7 +44,6 @@ export default class Viewport {
   effectSobel: ShaderPass;
 
   nodes: ThreeDNode[] = [];
-  selectedNodes: ThreeDNode[] = [];
 
   orbitControls: OrbitControls;
 
@@ -105,30 +104,12 @@ export default class Viewport {
     this.orbitControls.minDistance = 40.0;
     this.orbitControls.maxDistance = 200.0;
     this.orbitControls.enablePan = false;
+    this.orbitControls.enableRotate = false;
 
     canvas.addEventListener("click", (e) => {
-      if (!this.nodes.some((n) => n.isRayCasted)) {
-        this.nodes.forEach((n) => {
-          n.setSelected(false);
-        });
-        this.selectedNodes = [];
-      }
       this.nodes.forEach((n) => {
         if (n.isRayCasted) {
-          if (this.selectedNodes.length >= 1) {
-            if (!n.isSelected) {
-              this.selectedNodes.push(n);
-              n.setSelected(true);
-            } else {
-              this.selectedNodes = this.selectedNodes.filter((sn) => sn !== n);
-              n.setSelected(false);
-            }
-          } else {
-            if (!n.isSelected) {
-              this.selectedNodes.push(n);
-            }
-            n.setSelected(true);
-          }
+          n.setSelected(!n.isSelected);
         }
       });
     });
@@ -137,7 +118,6 @@ export default class Viewport {
       this.nodes.forEach((n) => {
         n.setSelected(false);
       });
-      this.selectedNodes = [];
     });
 
     this.scene.background = new CubeTextureLoader().load([
@@ -242,9 +222,9 @@ export default class Viewport {
     this.nodes.forEach((n) => {
       if (n.object) {
         if (n.object.userData.isName) {
-          if (n.isHovered) {
+          if (n.isRayCasted || n.isSelected) {
             (n.object.material as ShaderMaterial).uniforms.amplitude.value =
-              Math.max(0.05, 1.0 + Math.sin(time * 0.5));
+              1.0 + Math.sin(time * 0.5);
           } else {
             (n.object.material as ShaderMaterial).uniforms.amplitude.value = 0;
           }
@@ -278,14 +258,8 @@ export default class Viewport {
       const subsetIntersect = this.raycaster.intersectObjects(subsets, false);
       if (intersect.length || subsetIntersect.length) {
         n.isRayCasted = true;
-        if (!n.isSelected && !n.isHovered) {
-          n.setHovered(true);
-        }
       } else {
         n.isRayCasted = false;
-        if (!n.isSelected && n.isHovered) {
-          n.setHovered(false);
-        }
       }
     });
 

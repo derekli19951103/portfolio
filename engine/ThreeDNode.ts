@@ -9,7 +9,7 @@ export default class ThreeDNode {
 
   bbox: Box3;
   isRayCasted: boolean = false;
-  private _isHovered: boolean = false;
+
   private _isSelected: boolean = false;
 
   loadingManager: LoadingManager = new LoadingManager();
@@ -78,20 +78,8 @@ export default class ThreeDNode {
     });
   }
 
-  get isHovered() {
-    return this._isHovered;
-  }
-
   get isSelected() {
     return this._isSelected;
-  }
-
-  setHovered(hovered: boolean) {
-    this._isHovered = hovered;
-
-    if (hovered === true) {
-    } else {
-    }
   }
 
   setSelected(selected: boolean) {
