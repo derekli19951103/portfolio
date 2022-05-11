@@ -147,6 +147,15 @@ export default class Viewport {
       });
     });
 
+    this.scene.background = new CubeTextureLoader().load([
+      "/textures/sky/square.png",
+      "/textures/sky/square.png",
+      "/textures/sky/square.png",
+      "/textures/sky/square.png",
+      "/textures/sky/square.png",
+      "/textures/sky/square.png",
+    ]);
+
     const waterGeometry = new PlaneGeometry(10000, 10000);
 
     this.water = new Water(waterGeometry, {
@@ -154,7 +163,7 @@ export default class Viewport {
       textureHeight: 512,
       waterNormals: new TextureLoader().load(
         "textures/waternormals.jpg",
-        function (texture) {
+        (texture) => {
           texture.wrapS = texture.wrapT = RepeatWrapping;
         }
       ),
@@ -177,12 +186,8 @@ export default class Viewport {
 
     this.composer = new EffectComposer(this.renderer);
     const renderPass = new RenderPass(this.scene, this.camera);
-    this.composer.addPass(renderPass);
-
-    // color to grayscale conversion
 
     const effectGrayScale = new ShaderPass(LuminosityShader);
-    this.composer.addPass(effectGrayScale);
 
     // you might want to use a gaussian blur filter before
     // the next pass to improve the result of the Sobel operator
@@ -194,7 +199,6 @@ export default class Viewport {
       window.innerWidth * window.devicePixelRatio;
     this.effectSobel.uniforms["resolution"].value.y =
       window.innerHeight * window.devicePixelRatio;
-    this.composer.addPass(this.effectSobel);
 
     const bloomPass = new UnrealBloomPass(
       new Vector2(this.width, this.height),
@@ -202,6 +206,10 @@ export default class Viewport {
       1,
       0.4
     );
+
+    this.composer.addPass(renderPass);
+    this.composer.addPass(effectGrayScale);
+    this.composer.addPass(this.effectSobel);
     this.composer.addPass(bloomPass);
 
     window.addEventListener("resize", () => {
