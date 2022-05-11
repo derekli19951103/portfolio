@@ -69,7 +69,6 @@ export default class Viewport {
     this.scene = new Scene();
     this.renderer = new WebGLRenderer({
       canvas,
-      antialias: true,
     });
 
     this.renderer.outputEncoding = sRGBEncoding;
