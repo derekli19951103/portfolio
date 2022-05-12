@@ -104,7 +104,8 @@ export default class Viewport {
     this.orbitControls.minDistance = 40.0;
     this.orbitControls.maxDistance = 200.0;
     this.orbitControls.enablePan = false;
-    this.orbitControls.enableRotate = false;
+    this.orbitControls.enableRotate = true;
+    this.orbitControls.enableDamping = true;
 
     canvas.addEventListener("click", (e) => {
       this.nodes.forEach((n) => {

@@ -2,7 +2,6 @@ import { extname } from "path";
 import { Box3, LoadingManager, Matrix4, Mesh } from "three";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
 import { GLTF, GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import Viewport from "./Viewport";
 
 export default class ThreeDNode {
   object: Mesh;
@@ -84,9 +83,5 @@ export default class ThreeDNode {
 
   setSelected(selected: boolean) {
     this._isSelected = selected;
-
-    if (selected === true) {
-    } else {
-    }
   }
 }

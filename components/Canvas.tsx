@@ -29,8 +29,8 @@ export const Canvas = () => {
     const i = await createBreakingText(font, "I");
 
     const height = 5;
-    const start = -30;
-    const gap = 10;
+    const start = -35;
+    const gap = 11;
 
     y.object.position.set(start, height, 0);
     u.object.position.set(start + gap, height, 0);
