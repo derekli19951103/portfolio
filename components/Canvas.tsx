@@ -1,5 +1,11 @@
 import { useEffect, useRef } from "react";
-import { PlaneBufferGeometry } from "three";
+import {
+  DoubleSide,
+  Mesh,
+  MeshStandardMaterial,
+  PlaneBufferGeometry,
+  SphereBufferGeometry,
+} from "three";
 import Stats from "three/examples/jsm/libs/stats.module";
 import { Reflector } from "three/examples/jsm/objects/Reflector";
 import { loadFont } from "../engine/loaders/font-loader";
@@ -50,12 +56,10 @@ export const Canvas = () => {
   const addPlane = (gl: Viewport) => {
     const geometry = new PlaneBufferGeometry(400, 250);
 
-    const mesh = new Reflector(geometry, {
-      clipBias: 0.003,
-      textureWidth: gl.width * window.devicePixelRatio,
-      textureHeight: gl.height * window.devicePixelRatio,
-      color: "black",
-    });
+    const mesh = new Mesh(
+      geometry,
+      new MeshStandardMaterial({ color: "black", side: DoubleSide })
+    );
 
     mesh.userData = { isPlane: true, needsRaising: false, raised: false };
     mesh.position.set(0, -125, 0);
@@ -77,20 +81,16 @@ export const Canvas = () => {
         stats,
       });
 
+      addName(viewport);
+      addPlane(viewport);
+
+      viewport.render();
+
       setViewports({
         viewport1: viewport,
       });
-
-      addName(viewport);
-      addPlane(viewport);
     }
   }, []);
-
-  useEffect(() => {
-    if (gl) {
-      gl.render();
-    }
-  }, [gl]);
 
   /**
    * Render
