@@ -257,7 +257,7 @@ export default class Viewport {
     });
   }
 
-  animatePlane() {
+  raisingAnimations() {
     if (this.plane) {
       if (this.needsRaising) {
         if (this.plane.object.position.y < 0) {
@@ -265,10 +265,11 @@ export default class Viewport {
         } else {
           this.raised = true;
         }
-        this.nodes.forEach((n) => {
+        this.nodes.forEach((n, i) => {
           if (n.object.userData.isName) {
             if (!this.raised) {
               n.object.position.y += 1;
+              n.object.position.x += 1 * i * 0.1 - 1;
             }
           }
         });
@@ -278,10 +279,11 @@ export default class Viewport {
         } else {
           this.raised = false;
         }
-        this.nodes.forEach((n) => {
+        this.nodes.forEach((n, i) => {
           if (n.object.userData.isName) {
             if (this.raised) {
               n.object.position.y -= 1;
+              n.object.position.x += 1 - 1 * i * 0.1;
             }
           }
         });
@@ -316,7 +318,7 @@ export default class Viewport {
     this.water.material.uniforms["time"].value += 1.0 / 60.0;
 
     this.animateName();
-    this.animatePlane();
+    this.raisingAnimations();
     this.animateCamera();
 
     this.orbitControls.update();
