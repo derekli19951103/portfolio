@@ -263,8 +263,10 @@ export default class Viewport {
       if (this.needsRaising) {
         if (this.plane.object.position.y < 0) {
           this.plane.object.position.y += 1;
+          this.orbitControls.enableRotate = false;
         } else {
           this.raised = true;
+          this.orbitControls.enableRotate = true;
         }
         this.nodes.forEach((n, i) => {
           if (n.object.userData.isName) {
@@ -282,8 +284,10 @@ export default class Viewport {
       } else {
         if (this.plane.object.position.y > -this.plane.size.y / 2 - 1) {
           this.plane.object.position.y -= 1;
+          this.orbitControls.enableRotate = false;
         } else {
           this.raised = false;
+          this.orbitControls.enableRotate = true;
         }
         this.nodes.forEach((n, i) => {
           if (n.object.userData.isName) {
