@@ -2,12 +2,9 @@ import {
   ACESFilmicToneMapping,
   AmbientLight,
   CubeTextureLoader,
-  HemisphereLight,
-  MathUtils,
   Mesh,
   PerspectiveCamera,
   PlaneGeometry,
-  PMREMGenerator,
   PointLight,
   Raycaster,
   RepeatWrapping,
@@ -20,18 +17,15 @@ import {
   WebGLRenderer,
 } from "three";
 import Stats from "three/examples/jsm/libs/stats.module";
-import { OrbitControls } from "../engine/three/OrbitControls";
-import ThreeDNode from "./ThreeDNode";
 import { Water } from "three/examples/jsm/objects/Water.js";
-import { Sky } from "three/examples/jsm/objects/Sky.js";
-
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass.js";
 import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
-
+import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { LuminosityShader } from "three/examples/jsm/shaders/LuminosityShader.js";
 import { SobelOperatorShader } from "three/examples/jsm/shaders/SobelOperatorShader.js";
-import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
+import { OrbitControls } from "../engine/three/OrbitControls";
+import ThreeDNode from "./ThreeDNode";
 
 export default class Viewport {
   scene: Scene;
@@ -59,19 +53,15 @@ export default class Viewport {
 
   private stats: Stats | undefined;
 
-  terminalRef: HTMLDivElement;
-
   constructor(props: {
     canvas: HTMLCanvasElement;
     width?: number;
     height?: number;
     stats?: Stats;
-    terminalRef: HTMLDivElement;
   }) {
-    const { canvas, width, height, stats, terminalRef } = props;
+    const { canvas, width, height, stats } = props;
 
     this.stats = stats;
-    this.terminalRef = terminalRef;
 
     this.scene = new Scene();
     this.renderer = new WebGLRenderer({
@@ -228,7 +218,6 @@ export default class Viewport {
       this.nodes.forEach((n) => {
         n.setSelected(false);
       });
-      this.terminalRef.setAttribute("style", "display:none;");
 
       if (plane && plane.object.userData.raised) {
         this.camera.position.set(
@@ -275,10 +264,6 @@ export default class Viewport {
         if (plane.object.position.y < 0) {
           plane.object.position.y += 1;
         } else {
-          this.terminalRef.setAttribute(
-            "style",
-            "display:block; position:absolute; top: 140px; left: calc(50vw - 300px)"
-          );
           plane.object.userData.raised = true;
         }
         this.nodes.forEach((n) => {

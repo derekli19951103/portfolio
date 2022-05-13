@@ -1,13 +1,7 @@
 import { useEffect, useRef } from "react";
-import Terminal from "terminal-in-react";
-import {
-  Mesh,
-  MeshStandardMaterial,
-  PlaneBufferGeometry,
-  RepeatWrapping,
-  TextureLoader,
-} from "three";
+import { PlaneBufferGeometry } from "three";
 import Stats from "three/examples/jsm/libs/stats.module";
+import { Reflector } from "three/examples/jsm/objects/Reflector";
 import { loadFont } from "../engine/loaders/font-loader";
 import { createBreakingText } from "../engine/objects/BreakingText";
 import ThreeDNode from "../engine/ThreeDNode";
@@ -18,7 +12,6 @@ export const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const statsRef = useRef<HTMLDivElement>(null);
-  const terminalRef = useRef<HTMLDivElement>(null);
 
   const { viewports, setViewports } = useViewports();
   const gl = viewports.viewport1;
@@ -39,7 +32,7 @@ export const Canvas = () => {
     const i = await createBreakingText(font, frag, vert, "I");
 
     const height = 5;
-    const start = -40;
+    const start = -45;
     const gap = 11;
 
     y.object.position.set(start, height, 0);
@@ -55,9 +48,14 @@ export const Canvas = () => {
   };
 
   const addPlane = (gl: Viewport) => {
-    const geometry = new PlaneBufferGeometry(140, 250);
+    const geometry = new PlaneBufferGeometry(400, 250);
 
-    const mesh = new Mesh(geometry, new MeshStandardMaterial({}));
+    const mesh = new Reflector(geometry, {
+      clipBias: 0.003,
+      textureWidth: gl.width * window.devicePixelRatio,
+      textureHeight: gl.height * window.devicePixelRatio,
+      color: "black",
+    });
 
     mesh.userData = { isPlane: true, needsRaising: false, raised: false };
     mesh.position.set(0, -125, 0);
@@ -68,7 +66,7 @@ export const Canvas = () => {
   };
 
   useEffect(() => {
-    if (canvasRef.current && terminalRef.current) {
+    if (canvasRef.current) {
       //@ts-ignore
       const stats: Stats = new Stats();
 
@@ -77,7 +75,6 @@ export const Canvas = () => {
       const viewport = new Viewport({
         canvas: canvasRef.current,
         stats,
-        terminalRef: terminalRef.current,
       });
 
       setViewports({
@@ -105,52 +102,13 @@ export const Canvas = () => {
          right: 0;
          left: unset !important;
         }
-        .terminal-container .terminal-base {
-          height: 480px;
-          min-height: 480px;
-        }
-        .terminal-container .terminal-base div div:last-child{
-         overflow-x: hidden;
-        }
+       
       `}</style>
       <div style={{ width: "100vw", height: "100vh" }}>
         <nav style={{ position: "absolute" }}>
           <div ref={statsRef} className="statsContainer" />
         </nav>
         <canvas ref={canvasRef} tabIndex={1} />
-        <div
-          style={{ display: "none" }}
-          ref={terminalRef}
-          className="terminal-container"
-        >
-          <Terminal
-            color="white"
-            backgroundColor="black"
-            barColor="black"
-            style={{ fontWeight: "bold", fontSize: "1em", width: 600 }}
-            commands={{
-              "open-google": () =>
-                window.open("https://www.google.com/", "_blank"),
-              showmsg: () => "Hello World",
-              popup: () => alert("Terminal in React"),
-            }}
-            description={{
-              "open-google": "opens google.com",
-              showmsg: "shows a message",
-              alert: "alert",
-              popup: "alert",
-            }}
-            msg="You can write anything here. Example - Hello! My name is Foo and I like Bar."
-            actionHandlers={{
-              handleClose: () => {
-                terminalRef.current?.setAttribute("style", "display: none");
-              },
-              handleMinimise: () => {
-                terminalRef.current?.setAttribute("style", "display: none");
-              },
-            }}
-          />
-        </div>
       </div>
     </>
   );
