@@ -12,7 +12,7 @@ export const createBreakingText = async (
 ) => {
   let geometry = new TextGeometry(text, {
     font,
-    size: 10,
+    size: 20,
     height: 3,
     curveSegments: 4,
     bevelThickness: 1,

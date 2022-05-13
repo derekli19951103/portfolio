@@ -38,8 +38,8 @@ export const Canvas = () => {
     const i = await createBreakingText(font, frag, vert, "I");
 
     const height = 5;
-    const start = -45;
-    const gap = 11;
+    const start = -55;
+    const gap = 20;
 
     y.object.position.set(start, height, 0);
     u.object.position.set(start + gap, height, 0);

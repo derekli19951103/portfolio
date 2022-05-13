@@ -32,7 +32,7 @@ export default class Viewport {
   renderer: WebGLRenderer;
   camera: PerspectiveCamera;
 
-  originalCameraPos = [-70, 12, 110];
+  originalCameraPos = [-70, 12, 120];
   facingCameraPos = [0, 0, 300];
 
   water: Water;
@@ -270,6 +270,11 @@ export default class Viewport {
             if (!this.raised) {
               n.object.position.y += 1;
               n.object.position.x += 1 * i * 0.1 - 1;
+              const shrink = 1 - 0.002;
+              const newScaleX = n.object.scale.x * shrink;
+              const newScaleY = n.object.scale.y * shrink;
+              const newScaleZ = n.object.scale.z * shrink;
+              n.object.scale.set(newScaleX, newScaleY, newScaleZ);
             }
           }
         });
@@ -284,6 +289,11 @@ export default class Viewport {
             if (this.raised) {
               n.object.position.y -= 1;
               n.object.position.x += 1 - 1 * i * 0.1;
+              const shrink = 1 - 0.002;
+              const newScaleX = n.object.scale.x / shrink;
+              const newScaleY = n.object.scale.y / shrink;
+              const newScaleZ = n.object.scale.z / shrink;
+              n.object.scale.set(newScaleX, newScaleY, newScaleZ);
             }
           }
         });
