@@ -118,40 +118,6 @@ export default class Viewport {
     this.orbitControls.enableRotate = true;
     this.orbitControls.enableDamping = true;
 
-    canvas.addEventListener("click", (e) => {
-      const plane = this.nodes.find((n) => n.object.userData.isPlane);
-      this.nodes.forEach((n) => {
-        if (n.isRayCasted) {
-          n.setSelected(!n.isSelected);
-
-          this.camera.position.set(
-            this.facingCameraPos[0],
-            this.facingCameraPos[1],
-            this.facingCameraPos[2]
-          );
-          if (plane) {
-            plane.object.userData.needsRaising = true;
-          }
-        }
-      });
-    });
-
-    canvas.addEventListener("contextmenu", (e) => {
-      const plane = this.nodes.find((n) => n.object.userData.isPlane);
-      this.nodes.forEach((n) => {
-        n.setSelected(false);
-      });
-      this.terminalRef.setAttribute("style", "display:none;");
-      this.camera.position.set(
-        this.originalCameraPos[0],
-        this.originalCameraPos[1],
-        this.originalCameraPos[2]
-      );
-      if (plane) {
-        plane.object.userData.needsRaising = false;
-      }
-    });
-
     this.scene.background = new CubeTextureLoader().load([
       "/textures/sky/square.png",
       "/textures/sky/square.png",
@@ -234,6 +200,45 @@ export default class Viewport {
           this.height * window.devicePixelRatio;
       }
     });
+
+    canvas.addEventListener("click", (e) => {
+      const plane = this.nodes.find((n) => n.object.userData.isPlane);
+      this.nodes.forEach((n) => {
+        if (n.isRayCasted) {
+          n.setSelected(!n.isSelected);
+
+          if (
+            plane &&
+            !plane.object.userData.raised &&
+            !n.object.userData.isPlane
+          ) {
+            this.camera.position.set(
+              this.originalCameraPos[0],
+              this.originalCameraPos[1],
+              this.originalCameraPos[2]
+            );
+            plane.object.userData.needsRaising = true;
+          }
+        }
+      });
+    });
+
+    canvas.addEventListener("contextmenu", (e) => {
+      const plane = this.nodes.find((n) => n.object.userData.isPlane);
+      this.nodes.forEach((n) => {
+        n.setSelected(false);
+      });
+      this.terminalRef.setAttribute("style", "display:none;");
+
+      if (plane) {
+        this.camera.position.set(
+          this.facingCameraPos[0],
+          this.facingCameraPos[1],
+          this.facingCameraPos[2]
+        );
+        plane.object.userData.needsRaising = false;
+      }
+    });
   }
 
   add(...nodes: ThreeDNode[]) {
@@ -272,8 +277,9 @@ export default class Viewport {
         } else {
           this.terminalRef.setAttribute(
             "style",
-            "display:block; position:absolute; top: 132px; left: calc(50vw - 300px)"
+            "display:block; position:absolute; top: 140px; left: calc(50vw - 300px)"
           );
+          plane.object.userData.raised = true;
         }
         this.nodes.forEach((n) => {
           if (n.object.userData.isName) {
@@ -285,6 +291,8 @@ export default class Viewport {
       } else {
         if (plane.object.position.y > -126) {
           plane.object.position.y -= 1;
+        } else {
+          plane.object.userData.raised = false;
         }
         this.nodes.forEach((n) => {
           if (n.object.userData.isName) {
@@ -293,6 +301,30 @@ export default class Viewport {
             }
           }
         });
+      }
+    }
+  }
+
+  animateCamera() {
+    const plane = this.nodes.find((n) => n.object.userData.isPlane);
+    if (plane) {
+      if (!plane.object.userData.raised && plane.object.userData.needsRaising) {
+        this.camera.position.x +=
+          (this.facingCameraPos[0] - this.originalCameraPos[0]) / 125;
+        this.camera.position.y +=
+          (this.facingCameraPos[1] - this.originalCameraPos[1]) / 125;
+        this.camera.position.z +=
+          (this.facingCameraPos[2] - this.originalCameraPos[2]) / 125;
+      } else if (
+        plane.object.userData.raised &&
+        !plane.object.userData.needsRaising
+      ) {
+        this.camera.position.x +=
+          (this.originalCameraPos[0] - this.facingCameraPos[0]) / 125;
+        this.camera.position.y +=
+          (this.originalCameraPos[1] - this.facingCameraPos[1]) / 125;
+        this.camera.position.z +=
+          (this.originalCameraPos[2] - this.facingCameraPos[2]) / 125;
       }
     }
   }
@@ -308,6 +340,7 @@ export default class Viewport {
     // console.log(this.camera.rotation.z);
     this.animateName();
     this.animatePlane();
+    this.animateCamera();
 
     this.orbitControls.update();
 

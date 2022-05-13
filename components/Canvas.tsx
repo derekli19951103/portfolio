@@ -54,18 +54,10 @@ export const Canvas = () => {
 
   const addPlane = (gl: Viewport) => {
     const geometry = new PlaneBufferGeometry(140, 250);
-    const textureLoader = new TextureLoader();
-    const texture = textureLoader.load("/textures/terminal.png");
-    texture.wrapS = RepeatWrapping;
-    texture.wrapT = RepeatWrapping;
-    const mesh = new Mesh(
-      geometry,
-      new MeshStandardMaterial({
-        map: texture,
-      })
-    );
 
-    mesh.userData = { isPlane: true, needsRaising: false };
+    const mesh = new Mesh(geometry, new MeshStandardMaterial({}));
+
+    mesh.userData = { isPlane: true, needsRaising: false, raised: false };
     mesh.position.set(0, -125, 0);
 
     const node = new ThreeDNode(mesh);
