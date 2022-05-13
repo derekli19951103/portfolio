@@ -230,7 +230,7 @@ export default class Viewport {
       });
       this.terminalRef.setAttribute("style", "display:none;");
 
-      if (plane) {
+      if (plane && plane.object.userData.raised) {
         this.camera.position.set(
           this.facingCameraPos[0],
           this.facingCameraPos[1],
