@@ -4,7 +4,12 @@ import { Font } from "three/examples/jsm/loaders/FontLoader";
 import { TessellateModifier } from "three/examples/jsm/modifiers/TessellateModifier";
 import ThreeDNode from "../ThreeDNode";
 
-export const createBreakingText = async (font: Font, text: string) => {
+export const createBreakingText = async (
+  font: Font,
+  fragmentShader: string,
+  vertexShader: string,
+  text: string
+) => {
   let geometry = new TextGeometry(text, {
     font,
     size: 10,
@@ -52,12 +57,8 @@ export const createBreakingText = async (font: Font, text: string) => {
 
   const shaderMaterial = new ShaderMaterial({
     uniforms: uniforms,
-    fragmentShader: await fetch("/shaders/frag.glsl").then(
-      async (res) => await res.text()
-    ),
-    vertexShader: await fetch("/shaders/vert.glsl").then(
-      async (res) => await res.text()
-    ),
+    fragmentShader,
+    vertexShader,
   });
 
   const mesh = new Mesh(geometry, shaderMaterial);

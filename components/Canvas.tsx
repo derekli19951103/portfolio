@@ -27,14 +27,16 @@ export const Canvas = () => {
     const font = await loadFont(
       "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json"
     );
-    const y = await createBreakingText(font, "Y");
-    const u = await createBreakingText(font, "U");
-    const f = await createBreakingText(font, "F");
-    const e = await createBreakingText(font, "E");
-    const n = await createBreakingText(font, "N");
-    const g = await createBreakingText(font, "G");
-    const l = await createBreakingText(font, "L");
-    const i = await createBreakingText(font, "I");
+    const frag = await (await fetch("/shaders/frag.glsl")).text();
+    const vert = await (await fetch("/shaders/vert.glsl")).text();
+    const y = await createBreakingText(font, frag, vert, "Y");
+    const u = await createBreakingText(font, frag, vert, "U");
+    const f = await createBreakingText(font, frag, vert, "F");
+    const e = await createBreakingText(font, frag, vert, "E");
+    const n = await createBreakingText(font, frag, vert, "N");
+    const g = await createBreakingText(font, frag, vert, "G");
+    const l = await createBreakingText(font, frag, vert, "L");
+    const i = await createBreakingText(font, frag, vert, "I");
 
     const height = 5;
     const start = -40;

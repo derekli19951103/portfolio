@@ -1,5 +1,5 @@
 {
-  "name": "threesome",
+  "name": "portfolio",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -18,7 +18,7 @@
   "devDependencies": {
     "@types/node": "17.0.12",
     "@types/react": "17.0.38",
-    "@types/three": "^0.139.0",
+    "@types/three": "^0.140.0",
     "eslint": "8.7.0",
     "eslint-config-next": "12.0.8",
     "next-plugin-antd-less": "^1.8.0",
