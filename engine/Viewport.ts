@@ -26,6 +26,7 @@ import { LuminosityShader } from "three/examples/jsm/shaders/LuminosityShader.js
 import { SobelOperatorShader } from "three/examples/jsm/shaders/SobelOperatorShader.js";
 import { OrbitControls } from "../engine/three/OrbitControls";
 import ThreeDNode from "./ThreeDNode";
+import { inBetweenRandom } from "./utils/math";
 
 export default class Viewport {
   scene: Scene;
@@ -269,7 +270,7 @@ export default class Viewport {
           if (n.object.userData.isName) {
             if (!this.raised) {
               n.object.position.y += 1;
-              n.object.position.x += 1 * i * 0.1 - 1;
+              n.object.position.x += 1 * n.object.userData.nameIndex * 0.1 - 1;
               const shrink = 1 - 0.002;
               const newScaleX = n.object.scale.x * shrink;
               const newScaleY = n.object.scale.y * shrink;
@@ -288,7 +289,7 @@ export default class Viewport {
           if (n.object.userData.isName) {
             if (this.raised) {
               n.object.position.y -= 1;
-              n.object.position.x += 1 - 1 * i * 0.1;
+              n.object.position.x += 1 - 1 * n.object.userData.nameIndex * 0.1;
               const shrink = 1 - 0.002;
               const newScaleX = n.object.scale.x / shrink;
               const newScaleY = n.object.scale.y / shrink;
@@ -322,6 +323,14 @@ export default class Viewport {
     }
   }
 
+  animateDolphins() {
+    this.nodes.forEach((n) => {
+      if (n.object.userData.isDolphin) {
+        n.object.rotation.x += n.object.userData.innateRotationSpeed;
+      }
+    });
+  }
+
   render() {
     this.raycaster.setFromCamera(this.pointer, this.camera);
     this.stats?.update();
@@ -330,6 +339,7 @@ export default class Viewport {
     this.animateName();
     this.raisingAnimations();
     this.animateCamera();
+    this.animateDolphins();
 
     this.orbitControls.update();
 

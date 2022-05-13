@@ -9,8 +9,10 @@ import {
 import Stats from "three/examples/jsm/libs/stats.module";
 import { Reflector } from "three/examples/jsm/objects/Reflector";
 import { loadFont } from "../engine/loaders/font-loader";
+import { loadObj } from "../engine/loaders/OBJLoader";
 import { createBreakingText } from "../engine/objects/BreakingText";
 import ThreeDNode from "../engine/ThreeDNode";
+import { inBetweenRandom } from "../engine/utils/math";
 import Viewport from "../engine/Viewport";
 import { useViewports } from "../store/viewports";
 
@@ -28,14 +30,14 @@ export const Canvas = () => {
     );
     const frag = await (await fetch("/shaders/frag.glsl")).text();
     const vert = await (await fetch("/shaders/vert.glsl")).text();
-    const y = await createBreakingText(font, frag, vert, "Y");
-    const u = await createBreakingText(font, frag, vert, "U");
-    const f = await createBreakingText(font, frag, vert, "F");
-    const e = await createBreakingText(font, frag, vert, "E");
-    const n = await createBreakingText(font, frag, vert, "N");
-    const g = await createBreakingText(font, frag, vert, "G");
-    const l = await createBreakingText(font, frag, vert, "L");
-    const i = await createBreakingText(font, frag, vert, "I");
+    const y = await createBreakingText(font, frag, vert, "Y", 0);
+    const u = await createBreakingText(font, frag, vert, "U", 1);
+    const f = await createBreakingText(font, frag, vert, "F", 2);
+    const e = await createBreakingText(font, frag, vert, "E", 3);
+    const n = await createBreakingText(font, frag, vert, "N", 4);
+    const g = await createBreakingText(font, frag, vert, "G", 5);
+    const l = await createBreakingText(font, frag, vert, "L", 6);
+    const i = await createBreakingText(font, frag, vert, "I", 7);
 
     const height = 5;
     const start = -55;
@@ -71,6 +73,48 @@ export const Canvas = () => {
     gl.addPlane(node);
   };
 
+  const addDolphins = async (gl: Viewport) => {
+    const mesh = new Mesh();
+    const dolphin = await loadObj("/models/dolphin.obj");
+    mesh.add(dolphin);
+
+    mesh.scale.set(0.1, 0.1, 0.1);
+
+    const nodes = [];
+
+    const generateRandom = (x: number, z: number) => {
+      const node = new ThreeDNode(mesh.clone());
+      node.object.position.set(x, 0, z);
+      node.object.rotation.x = Math.PI / 2 + Math.random() * 10;
+      node.object.userData = {
+        isDolphin: true,
+        innateRotationSpeed: inBetweenRandom(2, 5) * 0.01,
+      };
+      return node;
+    };
+
+    for (let i = 0; i < 30; i++) {
+      nodes.push(
+        generateRandom(
+          inBetweenRandom(-1000, 1000),
+          inBetweenRandom(-1000, -50)
+        )
+      );
+    }
+    for (let i = 0; i < 10; i++) {
+      nodes.push(
+        generateRandom(inBetweenRandom(200, 1000), inBetweenRandom(0, 1000))
+      );
+    }
+    for (let i = 0; i < 10; i++) {
+      nodes.push(
+        generateRandom(inBetweenRandom(-1000, -200), inBetweenRandom(0, 1000))
+      );
+    }
+
+    gl.add(...nodes);
+  };
+
   useEffect(() => {
     if (canvasRef.current) {
       //@ts-ignore
@@ -83,10 +127,12 @@ export const Canvas = () => {
         stats,
       });
 
+      viewport.render();
+
       addName(viewport);
       addPlane(viewport);
 
-      viewport.render();
+      addDolphins(viewport);
 
       setViewports({
         viewport1: viewport,
