@@ -38,6 +38,9 @@ export default class Viewport {
   renderer: WebGLRenderer;
   camera: PerspectiveCamera;
 
+  originalCameraPos = [-70, 12, 110];
+  facingCameraPos = [0, 0, 300];
+
   water: Water;
 
   composer: EffectComposer;
@@ -54,17 +57,21 @@ export default class Viewport {
   height: number;
   private fixed: boolean = false;
 
-  private stats: Stats;
+  private stats: Stats | undefined;
+
+  terminalRef: HTMLDivElement;
 
   constructor(props: {
     canvas: HTMLCanvasElement;
     width?: number;
     height?: number;
-    stats?: any;
+    stats?: Stats;
+    terminalRef: HTMLDivElement;
   }) {
-    const { canvas, width, height, stats } = props;
+    const { canvas, width, height, stats, terminalRef } = props;
 
     this.stats = stats;
+    this.terminalRef = terminalRef;
 
     this.scene = new Scene();
     this.renderer = new WebGLRenderer({
@@ -85,7 +92,11 @@ export default class Viewport {
 
     this.camera = new PerspectiveCamera(55, this.width / this.height, 1, 20000);
 
-    this.camera.position.set(-30, 12, 70);
+    this.camera.position.set(
+      this.originalCameraPos[0],
+      this.originalCameraPos[1],
+      this.originalCameraPos[2]
+    );
 
     this.scene.add(this.camera);
 
@@ -102,23 +113,43 @@ export default class Viewport {
     this.orbitControls.listenToKeyEvents(canvas);
     this.orbitControls.maxPolarAngle = Math.PI * 0.495;
     this.orbitControls.minDistance = 40.0;
-    this.orbitControls.maxDistance = 200.0;
+    this.orbitControls.maxDistance = 300;
     this.orbitControls.enablePan = false;
     this.orbitControls.enableRotate = true;
     this.orbitControls.enableDamping = true;
 
     canvas.addEventListener("click", (e) => {
+      const plane = this.nodes.find((n) => n.object.userData.isPlane);
       this.nodes.forEach((n) => {
         if (n.isRayCasted) {
           n.setSelected(!n.isSelected);
+
+          this.camera.position.set(
+            this.facingCameraPos[0],
+            this.facingCameraPos[1],
+            this.facingCameraPos[2]
+          );
+          if (plane) {
+            plane.object.userData.needsRaising = true;
+          }
         }
       });
     });
 
     canvas.addEventListener("contextmenu", (e) => {
+      const plane = this.nodes.find((n) => n.object.userData.isPlane);
       this.nodes.forEach((n) => {
         n.setSelected(false);
       });
+      this.terminalRef.setAttribute("style", "display:none;");
+      this.camera.position.set(
+        this.originalCameraPos[0],
+        this.originalCameraPos[1],
+        this.originalCameraPos[2]
+      );
+      if (plane) {
+        plane.object.userData.needsRaising = false;
+      }
     });
 
     this.scene.background = new CubeTextureLoader().load([
@@ -221,22 +252,54 @@ export default class Viewport {
   animateName() {
     const time = Date.now() * 0.001;
     this.nodes.forEach((n) => {
-      if (n.object) {
-        if (n.object.userData.isName) {
-          if (n.isRayCasted || n.isSelected) {
-            (n.object.material as ShaderMaterial).uniforms.amplitude.value =
-              1.0 + Math.sin(time * 0.5);
-          } else {
-            (n.object.material as ShaderMaterial).uniforms.amplitude.value = 0;
-          }
+      if (n.object.userData.isName) {
+        if (n.isRayCasted || n.isSelected) {
+          (n.object.material as ShaderMaterial).uniforms.amplitude.value =
+            1.0 + Math.sin(time * 0.5);
+        } else {
+          (n.object.material as ShaderMaterial).uniforms.amplitude.value = 0;
         }
       }
     });
   }
 
+  animatePlane() {
+    const plane = this.nodes.find((n) => n.object.userData.isPlane);
+    if (plane) {
+      if (plane.object.userData.needsRaising) {
+        if (plane.object.position.y < 0) {
+          plane.object.position.y += 1;
+        } else {
+          this.terminalRef.setAttribute(
+            "style",
+            "display:block; position:absolute; top: 132px; left: calc(50vw - 300px)"
+          );
+        }
+        this.nodes.forEach((n) => {
+          if (n.object.userData.isName) {
+            if (n.object.position.y < 130) {
+              n.object.position.y += 1;
+            }
+          }
+        });
+      } else {
+        if (plane.object.position.y > -126) {
+          plane.object.position.y -= 1;
+        }
+        this.nodes.forEach((n) => {
+          if (n.object.userData.isName) {
+            if (n.object.position.y > 5) {
+              n.object.position.y -= 1;
+            }
+          }
+        });
+      }
+    }
+  }
+
   render() {
     this.raycaster.setFromCamera(this.pointer, this.camera);
-    this.stats.update();
+    this.stats?.update();
     this.water.material.uniforms["time"].value += 1.0 / 60.0;
 
     // console.log(this.camera.position);
@@ -244,6 +307,7 @@ export default class Viewport {
     // console.log(this.camera.rotation.y);
     // console.log(this.camera.rotation.z);
     this.animateName();
+    this.animatePlane();
 
     this.orbitControls.update();
 
