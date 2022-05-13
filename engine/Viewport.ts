@@ -53,6 +53,10 @@ export default class Viewport {
 
   private stats: Stats | undefined;
 
+  plane: ThreeDNode | undefined;
+  needsRaising = false;
+  raised = false;
+
   constructor(props: {
     canvas: HTMLCanvasElement;
     width?: number;
@@ -192,40 +196,34 @@ export default class Viewport {
     });
 
     canvas.addEventListener("click", (e) => {
-      const plane = this.nodes.find((n) => n.object.userData.isPlane);
       this.nodes.forEach((n) => {
         if (n.isRayCasted) {
           n.setSelected(!n.isSelected);
 
-          if (
-            plane &&
-            !plane.object.userData.raised &&
-            !n.object.userData.isPlane
-          ) {
+          if (!this.raised) {
             this.camera.position.set(
               this.originalCameraPos[0],
               this.originalCameraPos[1],
               this.originalCameraPos[2]
             );
-            plane.object.userData.needsRaising = true;
+            this.needsRaising = true;
           }
         }
       });
     });
 
     canvas.addEventListener("contextmenu", (e) => {
-      const plane = this.nodes.find((n) => n.object.userData.isPlane);
       this.nodes.forEach((n) => {
         n.setSelected(false);
       });
 
-      if (plane && plane.object.userData.raised) {
+      if (this.raised) {
         this.camera.position.set(
           this.facingCameraPos[0],
           this.facingCameraPos[1],
           this.facingCameraPos[2]
         );
-        plane.object.userData.needsRaising = false;
+        this.needsRaising = false;
       }
     });
   }
@@ -233,14 +231,16 @@ export default class Viewport {
   add(...nodes: ThreeDNode[]) {
     const objects = [];
     for (let i = 0; i < nodes.length; i++) {
-      const node = nodes[i];
-      if (node.object) {
-        objects.push(node.object);
-      }
+      objects.push(nodes[i].object);
     }
 
     this.nodes.push(...nodes);
     this.scene.add(...objects);
+  }
+
+  addPlane(node: ThreeDNode) {
+    this.plane = node;
+    this.scene.add(node.object);
   }
 
   animateName() {
@@ -258,30 +258,29 @@ export default class Viewport {
   }
 
   animatePlane() {
-    const plane = this.nodes.find((n) => n.object.userData.isPlane);
-    if (plane) {
-      if (plane.object.userData.needsRaising) {
-        if (plane.object.position.y < 0) {
-          plane.object.position.y += 1;
+    if (this.plane) {
+      if (this.needsRaising) {
+        if (this.plane.object.position.y < 0) {
+          this.plane.object.position.y += 1;
         } else {
-          plane.object.userData.raised = true;
+          this.raised = true;
         }
         this.nodes.forEach((n) => {
           if (n.object.userData.isName) {
-            if (n.object.position.y < 130) {
+            if (!this.raised) {
               n.object.position.y += 1;
             }
           }
         });
       } else {
-        if (plane.object.position.y > -126) {
-          plane.object.position.y -= 1;
+        if (this.plane.object.position.y > -this.plane.size.y / 2 - 1) {
+          this.plane.object.position.y -= 1;
         } else {
-          plane.object.userData.raised = false;
+          this.raised = false;
         }
         this.nodes.forEach((n) => {
           if (n.object.userData.isName) {
-            if (n.object.position.y > 5) {
+            if (this.raised) {
               n.object.position.y -= 1;
             }
           }
@@ -291,25 +290,22 @@ export default class Viewport {
   }
 
   animateCamera() {
-    const plane = this.nodes.find((n) => n.object.userData.isPlane);
-    if (plane) {
-      if (!plane.object.userData.raised && plane.object.userData.needsRaising) {
+    if (this.plane) {
+      const seg = this.plane.size.y / 2;
+      if (!this.raised && this.needsRaising) {
         this.camera.position.x +=
-          (this.facingCameraPos[0] - this.originalCameraPos[0]) / 125;
+          (this.facingCameraPos[0] - this.originalCameraPos[0]) / seg;
         this.camera.position.y +=
-          (this.facingCameraPos[1] - this.originalCameraPos[1]) / 125;
+          (this.facingCameraPos[1] - this.originalCameraPos[1]) / seg;
         this.camera.position.z +=
-          (this.facingCameraPos[2] - this.originalCameraPos[2]) / 125;
-      } else if (
-        plane.object.userData.raised &&
-        !plane.object.userData.needsRaising
-      ) {
+          (this.facingCameraPos[2] - this.originalCameraPos[2]) / seg;
+      } else if (this.raised && !this.needsRaising) {
         this.camera.position.x +=
-          (this.originalCameraPos[0] - this.facingCameraPos[0]) / 125;
+          (this.originalCameraPos[0] - this.facingCameraPos[0]) / seg;
         this.camera.position.y +=
-          (this.originalCameraPos[1] - this.facingCameraPos[1]) / 125;
+          (this.originalCameraPos[1] - this.facingCameraPos[1]) / seg;
         this.camera.position.z +=
-          (this.originalCameraPos[2] - this.facingCameraPos[2]) / 125;
+          (this.originalCameraPos[2] - this.facingCameraPos[2]) / seg;
       }
     }
   }
@@ -319,10 +315,6 @@ export default class Viewport {
     this.stats?.update();
     this.water.material.uniforms["time"].value += 1.0 / 60.0;
 
-    // console.log(this.camera.position);
-    // console.log(this.camera.rotation.x);
-    // console.log(this.camera.rotation.y);
-    // console.log(this.camera.rotation.z);
     this.animateName();
     this.animatePlane();
     this.animateCamera();

@@ -54,19 +54,21 @@ export const Canvas = () => {
   };
 
   const addPlane = (gl: Viewport) => {
-    const geometry = new PlaneBufferGeometry(400, 250);
+    const height = 250;
+    const geometry = new PlaneBufferGeometry(400, height);
 
     const mesh = new Mesh(
       geometry,
       new MeshStandardMaterial({ color: "black", side: DoubleSide })
     );
 
-    mesh.userData = { isPlane: true, needsRaising: false, raised: false };
-    mesh.position.set(0, -125, 0);
+    mesh.userData = { isPlane: true };
 
     const node = new ThreeDNode(mesh);
 
-    gl.add(node);
+    node.object.position.set(0, -node.size.y / 2, 0);
+
+    gl.addPlane(node);
   };
 
   useEffect(() => {
@@ -104,7 +106,7 @@ export const Canvas = () => {
         }
        
       `}</style>
-      <div style={{ width: "100vw", height: "100vh" }}>
+      <div style={{ width: "100vw", height: "100vh", overflow: "hidden" }}>
         <nav style={{ position: "absolute" }}>
           <div ref={statsRef} className="statsContainer" />
         </nav>
