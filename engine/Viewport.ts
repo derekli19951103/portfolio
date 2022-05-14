@@ -108,7 +108,7 @@ export default class Viewport {
     this.orbitControls.listenToKeyEvents(canvas);
     this.orbitControls.maxPolarAngle = Math.PI * 0.495;
     this.orbitControls.minDistance = 40.0;
-    this.orbitControls.maxDistance = 300;
+    this.orbitControls.maxDistance = 350;
     this.orbitControls.enablePan = false;
     this.orbitControls.enableRotate = true;
     this.orbitControls.enableDamping = true;
