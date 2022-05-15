@@ -34,7 +34,7 @@ export default class Viewport {
   camera: PerspectiveCamera;
 
   originalCameraPos = [-70, 12, 120];
-  facingCameraPos = [0, 0, 300];
+  facingCameraPos = [0, 250 / 4, 220];
 
   water: Water;
 
@@ -316,6 +316,8 @@ export default class Viewport {
           (this.facingCameraPos[1] - this.originalCameraPos[1]) / seg;
         this.camera.position.z +=
           (this.facingCameraPos[2] - this.originalCameraPos[2]) / seg;
+        this.orbitControls.target.y +=
+          (this.facingCameraPos[1] - this.originalCameraPos[1]) / seg;
       } else if (this.raised && !this.needsRaising) {
         this.camera.position.x +=
           (this.originalCameraPos[0] - this.facingCameraPos[0]) / seg;
@@ -323,6 +325,8 @@ export default class Viewport {
           (this.originalCameraPos[1] - this.facingCameraPos[1]) / seg;
         this.camera.position.z +=
           (this.originalCameraPos[2] - this.facingCameraPos[2]) / seg;
+        this.orbitControls.target.y +=
+          (this.originalCameraPos[1] - this.facingCameraPos[1]) / seg;
       }
     }
   }
