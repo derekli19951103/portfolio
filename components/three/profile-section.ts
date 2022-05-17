@@ -1,7 +1,7 @@
 import TWEEN from "@tweenjs/tween.js";
 import { createTranslationAnimation } from "../../engine/animations/text-animations";
 import { loadFont } from "../../engine/loaders/font-loader";
-import { createStandardText } from "../../engine/objects/StandardText";
+import { createWireframeText } from "../../engine/objects/WireframeText";
 import Viewport from "../../engine/Viewport";
 import { PLANE_HEIGHT } from "../Canvas";
 
@@ -10,8 +10,8 @@ export const addProfileText = async (viewport: Viewport) => {
     "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json"
   );
 
-  const t1 = createStandardText(font, "Fullstack");
-  const t2 = createStandardText(font, "Developer");
+  const t1 = createWireframeText(font, "Fullstack");
+  const t2 = createWireframeText(font, "Developer");
 
   createTranslationAnimation({
     object: t1.object,

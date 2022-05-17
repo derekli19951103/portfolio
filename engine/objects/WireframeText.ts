@@ -1,20 +1,13 @@
-import { Mesh, MeshStandardMaterial, Vector3 } from "three";
+import { Mesh, MeshBasicMaterial, Vector3 } from "three";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry";
 import { Font } from "three/examples/jsm/loaders/FontLoader";
 import ThreeDNode from "../ThreeDNode";
 
-export const createStandardText = (
-  font: Font,
-  text: string,
-  params?: {
-    size?: number;
-    height?: number;
-  }
-) => {
+export const createWireframeText = (font: Font, text: string) => {
   const geometry = new TextGeometry(text, {
     font,
-    size: params?.size || 20,
-    height: params?.height || 0.1,
+    size: 20,
+    height: 0.1,
     curveSegments: 4,
     bevelEnabled: false,
   });
@@ -24,9 +17,13 @@ export const createStandardText = (
   geometry.boundingBox!.getCenter(center);
   geometry.center();
 
-  const mesh = new Mesh(geometry, new MeshStandardMaterial());
+  const mesh = new Mesh(geometry, new MeshBasicMaterial());
 
-  const node = new ThreeDNode(mesh);
+  const node = new ThreeDNode(mesh, {
+    onRayCasted: (rayCasted) => {
+      mesh.material.wireframe = rayCasted;
+    },
+  });
 
   return node;
 };

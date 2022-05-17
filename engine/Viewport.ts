@@ -3,8 +3,10 @@ import {
   ACESFilmicToneMapping,
   AmbientLight,
   CubeTextureLoader,
+  DirectionalLight,
   Group,
   Mesh,
+  Object3D,
   PerspectiveCamera,
   PlaneGeometry,
   PointLight,
@@ -12,6 +14,8 @@ import {
   RepeatWrapping,
   Scene,
   ShaderMaterial,
+  SpotLight,
+  SpotLightHelper,
   sRGBEncoding,
   TextureLoader,
   Vector2,
@@ -51,6 +55,7 @@ export default class Viewport {
 
   raycaster: Raycaster = new Raycaster();
   pointer: Vector2 = new Vector2();
+  mouseSpotLight: SpotLight;
 
   width: number;
   height: number;
@@ -100,11 +105,37 @@ export default class Viewport {
 
     this.scene.add(this.camera);
 
+    const ambientLight = new AmbientLight(0xcccccc, 0.4);
+    this.scene.add(ambientLight);
+
+    const mouseLightZHeight = 50;
+    this.mouseSpotLight = new SpotLight(
+      0xffffff,
+      10,
+      mouseLightZHeight + 10,
+      Math.PI / 2
+    );
+    this.scene.add(this.mouseSpotLight);
+    this.mouseSpotLight.position.set(0, 0, mouseLightZHeight);
+    // const lightHelper = new SpotLightHelper(this.mouseSpotLight);
+    // this.scene.add(lightHelper);
+
     canvas.addEventListener(
       "mousemove",
       (e) => {
         this.pointer.x = (e.clientX / this.width) * 2 - 1;
         this.pointer.y = -(e.clientY / this.height) * 2 + 1;
+
+        const vector = new Vector3(this.pointer.x, this.pointer.y, 0.5);
+        vector.unproject(this.camera);
+        const dir = vector.sub(this.camera.position).normalize();
+        const distance = -this.camera.position.z / dir.z;
+        const pos = this.camera.position
+          .clone()
+          .add(dir.multiplyScalar(distance));
+        this.mouseSpotLight.position.copy(
+          new Vector3(pos.x, pos.y, pos.z + mouseLightZHeight)
+        );
       },
       false
     );
@@ -148,12 +179,6 @@ export default class Viewport {
     this.water.rotation.x = -Math.PI / 2;
 
     this.scene.add(this.water);
-
-    const ambientLight = new AmbientLight(0xcccccc, 0.4);
-    this.scene.add(ambientLight);
-
-    const pointLight = new PointLight(0xffffff, 0.8);
-    this.camera.add(pointLight);
 
     this.composer = new EffectComposer(this.renderer);
     const renderPass = new RenderPass(this.scene, this.camera);
@@ -414,8 +439,13 @@ export default class Viewport {
     }
   }
 
+  setMouseSpotLightTarget(object: Object3D) {
+    this.mouseSpotLight.target = object;
+  }
+
   render() {
     this.raycaster.setFromCamera(this.pointer, this.camera);
+
     this.stats?.update();
     TWEEN.update();
     this.water.material.uniforms["time"].value += 1.0 / 60.0;

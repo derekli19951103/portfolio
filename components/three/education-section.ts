@@ -4,10 +4,13 @@ import {
   DoubleSide,
   Mesh,
   MeshBasicMaterial,
+  MeshStandardMaterial,
   PlaneGeometry,
   TextureLoader,
 } from "three";
 import { createTranslationAnimation } from "../../engine/animations/text-animations";
+import { loadFont } from "../../engine/loaders/font-loader";
+import { createStandardText } from "../../engine/objects/StandardText";
 import ThreeDNode from "../../engine/ThreeDNode";
 import Viewport from "../../engine/Viewport";
 import { PLANE_HEIGHT } from "../Canvas";
@@ -17,14 +20,21 @@ export const addEduContent = async (viewport: Viewport) => {
 
   const mesh = new Mesh(
     geo,
-    new MeshBasicMaterial({
+    new MeshStandardMaterial({
       map: new TextureLoader().load("/textures/uoft.png"),
       blending: AdditiveBlending,
-      side: DoubleSide,
     })
   );
 
   const node = new ThreeDNode(mesh);
+
+  const font = await loadFont(
+    "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json"
+  );
+
+  const t1 = createStandardText(font, "B.A. in Computer Science - 2019", {
+    size: 10,
+  });
 
   createTranslationAnimation({
     object: node.object,
@@ -37,5 +47,17 @@ export const addEduContent = async (viewport: Viewport) => {
     easing: TWEEN.Easing.Quadratic.InOut,
   }).start();
 
-  viewport.addToContentGroup(node);
+  createTranslationAnimation({
+    object: t1.object,
+    start: {
+      x: 100,
+      y: 20,
+      z: 0,
+    },
+    end: { x: 10, y: 20, z: 0 },
+    easing: TWEEN.Easing.Quadratic.InOut,
+  }).start();
+
+  viewport.addToContentGroup(node, t1);
+  viewport.setMouseSpotLightTarget(node.object);
 };
