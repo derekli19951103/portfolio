@@ -1,20 +1,23 @@
+import TWEEN from "@tweenjs/tween.js";
 import { useEffect, useRef } from "react";
 import {
   DoubleSide,
   Mesh,
-  MeshStandardMaterial,
+  MeshBasicMaterial,
   PlaneBufferGeometry,
-  SphereBufferGeometry,
 } from "three";
 import Stats from "three/examples/jsm/libs/stats.module";
-import { Reflector } from "three/examples/jsm/objects/Reflector";
+import { createTranslationAnimation } from "../engine/animations/text-animations";
 import { loadFont } from "../engine/loaders/font-loader";
 import { loadObj } from "../engine/loaders/OBJLoader";
 import { createBreakingText } from "../engine/objects/BreakingText";
+import { createStandardText } from "../engine/objects/StandardText";
 import ThreeDNode from "../engine/ThreeDNode";
 import { inBetweenRandom } from "../engine/utils/math";
 import Viewport from "../engine/Viewport";
 import { useViewports } from "../store/viewports";
+
+export const PLANE_HEIGHT = 120;
 
 export const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -30,16 +33,16 @@ export const Canvas = () => {
     );
     const frag = await (await fetch("/shaders/frag.glsl")).text();
     const vert = await (await fetch("/shaders/vert.glsl")).text();
-    const y = await createBreakingText(font, frag, vert, "Y", 0);
-    const u = await createBreakingText(font, frag, vert, "U", 1);
-    const f = await createBreakingText(font, frag, vert, "F", 2);
-    const e = await createBreakingText(font, frag, vert, "E", 3);
-    const n = await createBreakingText(font, frag, vert, "N", 4);
-    const g = await createBreakingText(font, frag, vert, "G", 5);
-    const l = await createBreakingText(font, frag, vert, "L", 6);
-    const i = await createBreakingText(font, frag, vert, "I", 7);
+    const y = createBreakingText(font, frag, vert, "Y", 0);
+    const u = createBreakingText(font, frag, vert, "U", 1);
+    const f = createBreakingText(font, frag, vert, "F", 2);
+    const e = createBreakingText(font, frag, vert, "E", 3);
+    const n = createBreakingText(font, frag, vert, "N", 4);
+    const g = createBreakingText(font, frag, vert, "G", 5);
+    const l = createBreakingText(font, frag, vert, "L", 6);
+    const i = createBreakingText(font, frag, vert, "I", 7);
 
-    const height = 5;
+    const height = 15;
     const start = -55;
     const gap = 20;
 
@@ -56,12 +59,11 @@ export const Canvas = () => {
   };
 
   const addPlane = (gl: Viewport) => {
-    const height = 250;
-    const geometry = new PlaneBufferGeometry(400, height);
+    const geometry = new PlaneBufferGeometry(400, PLANE_HEIGHT);
 
     const mesh = new Mesh(
       geometry,
-      new MeshStandardMaterial({ color: "black", side: DoubleSide })
+      new MeshBasicMaterial({ color: "black", side: DoubleSide })
     );
 
     mesh.userData = { isPlane: true };

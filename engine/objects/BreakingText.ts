@@ -1,10 +1,10 @@
-import { BufferAttribute, Color, Mesh, ShaderMaterial } from "three";
+import { BufferAttribute, Color, Mesh, ShaderMaterial, Vector3 } from "three";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry";
 import { Font } from "three/examples/jsm/loaders/FontLoader";
 import { TessellateModifier } from "three/examples/jsm/modifiers/TessellateModifier";
 import ThreeDNode from "../ThreeDNode";
 
-export const createBreakingText = async (
+export const createBreakingText = (
   font: Font,
   fragmentShader: string,
   vertexShader: string,
@@ -20,6 +20,11 @@ export const createBreakingText = async (
     bevelSize: 0.5,
     bevelEnabled: true,
   });
+
+  const center = new Vector3();
+  geometry.computeBoundingBox();
+  geometry.boundingBox!.getCenter(center);
+  geometry.center();
 
   const tessellateModifier = new TessellateModifier(8, 6);
 

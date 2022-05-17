@@ -1,8 +1,11 @@
+import TWEEN from "@tweenjs/tween.js";
 import {
   ACESFilmicToneMapping,
   AmbientLight,
   CubeTextureLoader,
+  Group,
   Mesh,
+  Object3D,
   PerspectiveCamera,
   PlaneGeometry,
   PointLight,
@@ -24,9 +27,9 @@ import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { LuminosityShader } from "three/examples/jsm/shaders/LuminosityShader.js";
 import { SobelOperatorShader } from "three/examples/jsm/shaders/SobelOperatorShader.js";
+import { addProfileText } from "../components/three/profile-section";
 import { OrbitControls } from "../engine/three/OrbitControls";
 import ThreeDNode from "./ThreeDNode";
-import { inBetweenRandom } from "./utils/math";
 
 export default class Viewport {
   scene: Scene;
@@ -52,11 +55,14 @@ export default class Viewport {
   height: number;
   private fixed: boolean = false;
 
-  private stats: Stats | undefined;
+  private stats?: Stats;
 
-  plane: ThreeDNode | undefined;
+  plane?: ThreeDNode;
   needsRaising = false;
   raised = false;
+
+  selectedTabIndex?: number;
+  displayContent = new Group();
 
   constructor(props: {
     canvas: HTMLCanvasElement;
@@ -72,6 +78,8 @@ export default class Viewport {
     this.renderer = new WebGLRenderer({
       canvas,
     });
+
+    this.scene.add(this.displayContent);
 
     this.renderer.outputEncoding = sRGBEncoding;
     this.renderer.setPixelRatio(window.devicePixelRatio);
@@ -114,12 +122,12 @@ export default class Viewport {
     this.orbitControls.enableDamping = true;
 
     this.scene.background = new CubeTextureLoader().load([
-      "/textures/sky/square.png",
-      "/textures/sky/square.png",
-      "/textures/sky/square.png",
-      "/textures/sky/square.png",
-      "/textures/sky/square.png",
-      "/textures/sky/square.png",
+      "/textures/sky/right.png",
+      "/textures/sky/left.png",
+      "/textures/sky/top.png",
+      "/textures/sky/bottom.png",
+      "/textures/sky/front.png",
+      "/textures/sky/back.png",
     ]);
 
     const waterGeometry = new PlaneGeometry(10000, 10000);
@@ -154,11 +162,6 @@ export default class Viewport {
     const renderPass = new RenderPass(this.scene, this.camera);
 
     const effectGrayScale = new ShaderPass(LuminosityShader);
-
-    // you might want to use a gaussian blur filter before
-    // the next pass to improve the result of the Sobel operator
-
-    // Sobel operator
 
     this.effectSobel = new ShaderPass(SobelOperatorShader);
     this.effectSobel.uniforms["resolution"].value.x =
@@ -198,8 +201,22 @@ export default class Viewport {
 
     canvas.addEventListener("click", (e) => {
       this.nodes.forEach((n) => {
-        if (n.isRayCasted) {
+        if (n.isRayCasted && n.object.userData.isName) {
           n.setSelected(!n.isSelected);
+
+          const nameIndex = n.object.userData.nameIndex;
+
+          if (this.selectedTabIndex !== nameIndex) {
+            this.removeFromContentGroup();
+
+            switch (nameIndex) {
+              case 0:
+                addProfileText(this);
+                break;
+            }
+          }
+
+          this.selectedTabIndex = nameIndex;
 
           if (!this.raised) {
             this.camera.position.set(
@@ -225,6 +242,10 @@ export default class Viewport {
           this.facingCameraPos[2]
         );
         this.needsRaising = false;
+
+        this.selectedTabIndex = undefined;
+
+        this.removeFromContentGroup();
       }
     });
   }
@@ -237,6 +258,25 @@ export default class Viewport {
 
     this.nodes.push(...nodes);
     this.scene.add(...objects);
+  }
+
+  addToContentGroup(...nodes: ThreeDNode[]) {
+    const objects = [];
+    for (let i = 0; i < nodes.length; i++) {
+      objects.push(nodes[i].object);
+    }
+
+    this.nodes.push(...nodes);
+    this.displayContent.add(...objects);
+  }
+
+  removeFromContentGroup() {
+    const uuids: string[] = [];
+    this.displayContent.traverse((c) => {
+      uuids.push(c.uuid);
+    });
+    this.nodes = this.nodes.filter((n) => !uuids.includes(n.object.uuid));
+    this.displayContent.clear();
   }
 
   addPlane(node: ThreeDNode) {
@@ -260,73 +300,62 @@ export default class Viewport {
 
   raisingAnimations() {
     if (this.plane) {
+      const planeHeight = this.plane.size.y;
+
       if (this.needsRaising) {
-        if (this.plane.object.position.y < 0) {
+        if (this.plane.object.position.y < planeHeight / 2) {
           this.plane.object.position.y += 1;
           this.orbitControls.enableRotate = false;
+
+          this.nodes.forEach((n) => {
+            if (n.object.userData.isName) {
+              n.object.position.y += 1;
+              n.object.position.x += 1 * n.object.userData.nameIndex * 0.1 - 1;
+              const shrink = 1 - 0.002;
+              const newScale = n.object.scale.multiplyScalar(shrink);
+              n.object.scale.set(newScale.x, newScale.y, newScale.z);
+            }
+          });
+
+          this.camera.position.x +=
+            (this.facingCameraPos[0] - this.originalCameraPos[0]) / planeHeight;
+          this.camera.position.y +=
+            (this.facingCameraPos[1] - this.originalCameraPos[1]) / planeHeight;
+          this.camera.position.z +=
+            (this.facingCameraPos[2] - this.originalCameraPos[2]) / planeHeight;
+          this.orbitControls.target.y +=
+            (this.facingCameraPos[1] - this.originalCameraPos[1]) / planeHeight;
         } else {
           this.raised = true;
           this.orbitControls.enableRotate = true;
         }
-        this.nodes.forEach((n, i) => {
-          if (n.object.userData.isName) {
-            if (!this.raised) {
-              n.object.position.y += 1;
-              n.object.position.x += 1 * n.object.userData.nameIndex * 0.1 - 1;
-              const shrink = 1 - 0.002;
-              const newScaleX = n.object.scale.x * shrink;
-              const newScaleY = n.object.scale.y * shrink;
-              const newScaleZ = n.object.scale.z * shrink;
-              n.object.scale.set(newScaleX, newScaleY, newScaleZ);
-            }
-          }
-        });
       } else {
-        if (this.plane.object.position.y > -this.plane.size.y / 2 - 1) {
+        if (this.plane.object.position.y > -planeHeight / 2 - 0.1) {
           this.plane.object.position.y -= 1;
           this.orbitControls.enableRotate = false;
+
+          this.nodes.forEach((n) => {
+            if (n.object.userData.isName) {
+              n.object.position.y -= 1;
+              n.object.position.x += 1 - 1 * n.object.userData.nameIndex * 0.1;
+              const shrink = 1 - 0.002;
+              const newScale = n.object.scale.divideScalar(shrink);
+              n.object.scale.set(newScale.x, newScale.y, newScale.z);
+            }
+          });
+
+          this.camera.position.x +=
+            (this.originalCameraPos[0] - this.facingCameraPos[0]) / planeHeight;
+          this.camera.position.y +=
+            (this.originalCameraPos[1] - this.facingCameraPos[1]) / planeHeight;
+          this.camera.position.z +=
+            (this.originalCameraPos[2] - this.facingCameraPos[2]) / planeHeight;
+          this.orbitControls.target.y +=
+            (this.originalCameraPos[1] - this.facingCameraPos[1]) / planeHeight;
         } else {
           this.raised = false;
           this.orbitControls.enableRotate = true;
         }
-        this.nodes.forEach((n, i) => {
-          if (n.object.userData.isName) {
-            if (this.raised) {
-              n.object.position.y -= 1;
-              n.object.position.x += 1 - 1 * n.object.userData.nameIndex * 0.1;
-              const shrink = 1 - 0.002;
-              const newScaleX = n.object.scale.x / shrink;
-              const newScaleY = n.object.scale.y / shrink;
-              const newScaleZ = n.object.scale.z / shrink;
-              n.object.scale.set(newScaleX, newScaleY, newScaleZ);
-            }
-          }
-        });
-      }
-    }
-  }
-
-  animateCamera() {
-    if (this.plane) {
-      const seg = this.plane.size.y / 2;
-      if (!this.raised && this.needsRaising) {
-        this.camera.position.x +=
-          (this.facingCameraPos[0] - this.originalCameraPos[0]) / seg;
-        this.camera.position.y +=
-          (this.facingCameraPos[1] - this.originalCameraPos[1]) / seg;
-        this.camera.position.z +=
-          (this.facingCameraPos[2] - this.originalCameraPos[2]) / seg;
-        this.orbitControls.target.y +=
-          (this.facingCameraPos[1] - this.originalCameraPos[1]) / seg;
-      } else if (this.raised && !this.needsRaising) {
-        this.camera.position.x +=
-          (this.originalCameraPos[0] - this.facingCameraPos[0]) / seg;
-        this.camera.position.y +=
-          (this.originalCameraPos[1] - this.facingCameraPos[1]) / seg;
-        this.camera.position.z +=
-          (this.originalCameraPos[2] - this.facingCameraPos[2]) / seg;
-        this.orbitControls.target.y +=
-          (this.originalCameraPos[1] - this.facingCameraPos[1]) / seg;
       }
     }
   }
@@ -342,11 +371,11 @@ export default class Viewport {
   render() {
     this.raycaster.setFromCamera(this.pointer, this.camera);
     this.stats?.update();
+    TWEEN.update();
     this.water.material.uniforms["time"].value += 1.0 / 60.0;
 
     this.animateName();
     this.raisingAnimations();
-    this.animateCamera();
     this.animateDolphins();
 
     this.orbitControls.update();
@@ -362,13 +391,12 @@ export default class Viewport {
       const intersect = this.raycaster.intersectObjects([n.object], false);
       const subsetIntersect = this.raycaster.intersectObjects(subsets, false);
       if (intersect.length || subsetIntersect.length) {
-        n.isRayCasted = true;
+        n.setRayCasted(true);
       } else {
-        n.isRayCasted = false;
+        n.setRayCasted(false);
       }
     });
 
-    // this.renderer.render(this.scene, this.camera);
     this.composer.render();
     requestAnimationFrame(this.render.bind(this));
   }
