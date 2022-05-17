@@ -5,7 +5,6 @@ import {
   CubeTextureLoader,
   Group,
   Mesh,
-  Object3D,
   PerspectiveCamera,
   PlaneGeometry,
   PointLight,
@@ -28,6 +27,7 @@ import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPa
 import { LuminosityShader } from "three/examples/jsm/shaders/LuminosityShader.js";
 import { SobelOperatorShader } from "three/examples/jsm/shaders/SobelOperatorShader.js";
 import { PLANE_HEIGHT } from "../components/Canvas";
+import { addEduContent } from "../components/three/education-section";
 import { addProfileText } from "../components/three/profile-section";
 import { OrbitControls } from "../engine/three/OrbitControls";
 import ThreeDNode from "./ThreeDNode";
@@ -407,6 +407,9 @@ export default class Viewport {
     switch (nameIndex) {
       case 0:
         addProfileText(this);
+        break;
+      case 1:
+        addEduContent(this);
         break;
     }
   }

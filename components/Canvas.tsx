@@ -1,4 +1,3 @@
-import TWEEN from "@tweenjs/tween.js";
 import { useEffect, useRef } from "react";
 import {
   DoubleSide,
@@ -7,11 +6,9 @@ import {
   PlaneBufferGeometry,
 } from "three";
 import Stats from "three/examples/jsm/libs/stats.module";
-import { createTranslationAnimation } from "../engine/animations/text-animations";
 import { loadFont } from "../engine/loaders/font-loader";
 import { loadObj } from "../engine/loaders/OBJLoader";
 import { createBreakingText } from "../engine/objects/BreakingText";
-import { createStandardText } from "../engine/objects/StandardText";
 import ThreeDNode from "../engine/ThreeDNode";
 import { inBetweenRandom } from "../engine/utils/math";
 import Viewport from "../engine/Viewport";
