@@ -1,4 +1,4 @@
-import TWEEN from "@tweenjs/tween.js";
+import TWEEN, { Easing } from "@tweenjs/tween.js";
 import {
   ACESFilmicToneMapping,
   AmbientLight,
@@ -27,6 +27,7 @@ import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { LuminosityShader } from "three/examples/jsm/shaders/LuminosityShader.js";
 import { SobelOperatorShader } from "three/examples/jsm/shaders/SobelOperatorShader.js";
+import { PLANE_HEIGHT } from "../components/Canvas";
 import { addProfileText } from "../components/three/profile-section";
 import { OrbitControls } from "../engine/three/OrbitControls";
 import ThreeDNode from "./ThreeDNode";
@@ -36,8 +37,8 @@ export default class Viewport {
   renderer: WebGLRenderer;
   camera: PerspectiveCamera;
 
-  originalCameraPos = [-70, 12, 120];
-  facingCameraPos = [0, 250 / 4, 220];
+  originalCameraPos = new Vector3(-70, 12, 120);
+  facingCameraPos = new Vector3(0, PLANE_HEIGHT / 2, 220);
 
   water: Water;
 
@@ -58,7 +59,7 @@ export default class Viewport {
   private stats?: Stats;
 
   plane?: ThreeDNode;
-  needsRaising = false;
+
   raised = false;
 
   selectedTabIndex?: number;
@@ -95,11 +96,7 @@ export default class Viewport {
 
     this.camera = new PerspectiveCamera(55, this.width / this.height, 1, 20000);
 
-    this.camera.position.set(
-      this.originalCameraPos[0],
-      this.originalCameraPos[1],
-      this.originalCameraPos[2]
-    );
+    this.camera.position.copy(this.originalCameraPos);
 
     this.scene.add(this.camera);
 
@@ -206,26 +203,18 @@ export default class Viewport {
 
           const nameIndex = n.object.userData.nameIndex;
 
-          if (this.selectedTabIndex !== nameIndex) {
-            this.removeFromContentGroup();
+          if (!this.raised) {
+            this.camera.position.copy(this.originalCameraPos);
+            this.raisingAnimations();
+          } else {
+            if (this.selectedTabIndex !== nameIndex) {
+              this.removeFromContentGroup();
 
-            switch (nameIndex) {
-              case 0:
-                addProfileText(this);
-                break;
+              this.switchContent(nameIndex);
             }
           }
 
           this.selectedTabIndex = nameIndex;
-
-          if (!this.raised) {
-            this.camera.position.set(
-              this.originalCameraPos[0],
-              this.originalCameraPos[1],
-              this.originalCameraPos[2]
-            );
-            this.needsRaising = true;
-          }
         }
       });
     });
@@ -236,12 +225,8 @@ export default class Viewport {
       });
 
       if (this.raised) {
-        this.camera.position.set(
-          this.facingCameraPos[0],
-          this.facingCameraPos[1],
-          this.facingCameraPos[2]
-        );
-        this.needsRaising = false;
+        this.camera.position.copy(this.facingCameraPos);
+        this.lowerAnimations();
 
         this.selectedTabIndex = undefined;
 
@@ -298,65 +283,115 @@ export default class Viewport {
     });
   }
 
+  lowerAnimations() {
+    if (this.plane) {
+      const planeHeight = this.plane.size.y;
+
+      const origPos: { [key: number]: Vector3 } = {};
+
+      this.nodes.forEach((n) => {
+        if (n.object.userData.isName) {
+          origPos[n.object.userData.nameIndex] = n.object.position.clone();
+        }
+      });
+
+      new TWEEN.Tween({ height: planeHeight / 2 })
+        .to({ height: -planeHeight / 2 - 0.1 })
+        .easing(Easing.Linear.None)
+        .onUpdate(({ height }, elapsed) => {
+          this.plane!.object.position.y = height;
+          this.orbitControls.enableRotate = false;
+
+          this.nodes.forEach((n) => {
+            const userData = n.object.userData;
+            if (userData.isName) {
+              n.object.position.y = height + planeHeight / 2 + 15;
+              n.object.position.x =
+                origPos[userData.nameIndex].x -
+                (userData.nameIndex / 14 - 1.2) * 100 * elapsed;
+              const shrink = 1 - 0.002;
+              const newScale = n.object.scale.divideScalar(
+                Math.pow(shrink, elapsed)
+              );
+              n.object.scale.set(newScale.x, newScale.y, newScale.z);
+            }
+          });
+
+          this.camera.position.x =
+            this.facingCameraPos.x +
+            (this.originalCameraPos.x - this.facingCameraPos.x) * elapsed;
+          this.camera.position.y =
+            this.facingCameraPos.y +
+            (this.originalCameraPos.y - this.facingCameraPos.y) * elapsed;
+          this.camera.position.z =
+            this.facingCameraPos.z +
+            (this.originalCameraPos.z - this.facingCameraPos.z) * elapsed;
+          this.orbitControls.target.y =
+            this.facingCameraPos.y +
+            (this.originalCameraPos.y - this.facingCameraPos.y) * elapsed;
+        })
+        .onComplete(() => {
+          this.raised = false;
+          this.orbitControls.enableRotate = true;
+        })
+        .start();
+    }
+  }
+
   raisingAnimations() {
     if (this.plane) {
       const planeHeight = this.plane.size.y;
 
-      if (this.needsRaising) {
-        if (this.plane.object.position.y < planeHeight / 2) {
-          this.plane.object.position.y += 1;
+      const origPos: { [key: number]: Vector3 } = {};
+
+      this.nodes.forEach((n) => {
+        if (n.object.userData.isName) {
+          origPos[n.object.userData.nameIndex] = n.object.position.clone();
+        }
+      });
+
+      new TWEEN.Tween({ height: -planeHeight / 2 - 0.1 })
+        .to({ height: planeHeight / 2 })
+        .easing(Easing.Linear.None)
+        .onUpdate(({ height }, elapsed) => {
+          this.plane!.object.position.y = height;
           this.orbitControls.enableRotate = false;
 
           this.nodes.forEach((n) => {
-            if (n.object.userData.isName) {
-              n.object.position.y += 1;
-              n.object.position.x += 1 * n.object.userData.nameIndex * 0.1 - 1;
+            const userData = n.object.userData;
+            if (userData.isName) {
+              n.object.position.y = height + planeHeight / 2 + 15;
+              n.object.position.x =
+                origPos[userData.nameIndex].x +
+                (userData.nameIndex / 14 - 1.2) * 100 * elapsed;
               const shrink = 1 - 0.002;
-              const newScale = n.object.scale.multiplyScalar(shrink);
+              const newScale = n.object.scale.multiplyScalar(
+                Math.pow(shrink, elapsed)
+              );
               n.object.scale.set(newScale.x, newScale.y, newScale.z);
             }
           });
 
-          this.camera.position.x +=
-            (this.facingCameraPos[0] - this.originalCameraPos[0]) / planeHeight;
-          this.camera.position.y +=
-            (this.facingCameraPos[1] - this.originalCameraPos[1]) / planeHeight;
-          this.camera.position.z +=
-            (this.facingCameraPos[2] - this.originalCameraPos[2]) / planeHeight;
-          this.orbitControls.target.y +=
-            (this.facingCameraPos[1] - this.originalCameraPos[1]) / planeHeight;
-        } else {
+          this.camera.position.x =
+            this.originalCameraPos.x +
+            (this.facingCameraPos.x - this.originalCameraPos.x) * elapsed;
+          this.camera.position.y =
+            this.originalCameraPos.y +
+            (this.facingCameraPos.y - this.originalCameraPos.y) * elapsed;
+          this.camera.position.z =
+            this.originalCameraPos.z +
+            (this.facingCameraPos.z - this.originalCameraPos.z) * elapsed;
+          this.orbitControls.target.y =
+            this.originalCameraPos.y +
+            (this.facingCameraPos.y - this.originalCameraPos.y) * elapsed;
+        })
+        .onComplete(() => {
           this.raised = true;
           this.orbitControls.enableRotate = true;
-        }
-      } else {
-        if (this.plane.object.position.y > -planeHeight / 2 - 0.1) {
-          this.plane.object.position.y -= 1;
-          this.orbitControls.enableRotate = false;
 
-          this.nodes.forEach((n) => {
-            if (n.object.userData.isName) {
-              n.object.position.y -= 1;
-              n.object.position.x += 1 - 1 * n.object.userData.nameIndex * 0.1;
-              const shrink = 1 - 0.002;
-              const newScale = n.object.scale.divideScalar(shrink);
-              n.object.scale.set(newScale.x, newScale.y, newScale.z);
-            }
-          });
-
-          this.camera.position.x +=
-            (this.originalCameraPos[0] - this.facingCameraPos[0]) / planeHeight;
-          this.camera.position.y +=
-            (this.originalCameraPos[1] - this.facingCameraPos[1]) / planeHeight;
-          this.camera.position.z +=
-            (this.originalCameraPos[2] - this.facingCameraPos[2]) / planeHeight;
-          this.orbitControls.target.y +=
-            (this.originalCameraPos[1] - this.facingCameraPos[1]) / planeHeight;
-        } else {
-          this.raised = false;
-          this.orbitControls.enableRotate = true;
-        }
-      }
+          this.switchContent(this.selectedTabIndex);
+        })
+        .start();
     }
   }
 
@@ -368,6 +403,14 @@ export default class Viewport {
     });
   }
 
+  switchContent(nameIndex?: number) {
+    switch (nameIndex) {
+      case 0:
+        addProfileText(this);
+        break;
+    }
+  }
+
   render() {
     this.raycaster.setFromCamera(this.pointer, this.camera);
     this.stats?.update();
@@ -375,7 +418,6 @@ export default class Viewport {
     this.water.material.uniforms["time"].value += 1.0 / 60.0;
 
     this.animateName();
-    this.raisingAnimations();
     this.animateDolphins();
 
     this.orbitControls.update();

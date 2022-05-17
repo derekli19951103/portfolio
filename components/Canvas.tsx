@@ -70,7 +70,7 @@ export const Canvas = () => {
 
     const node = new ThreeDNode(mesh);
 
-    node.object.position.set(0, -node.size.y / 2, 0);
+    node.object.position.set(0, -PLANE_HEIGHT / 2 - 0.1, 0);
 
     gl.addPlane(node);
   };

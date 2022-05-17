@@ -19,6 +19,7 @@ export default class ThreeDNode {
     params?: { onRayCasted?: (rayCasted: boolean) => void }
   ) {
     this.object = object;
+
     this.onRayCasted = params?.onRayCasted;
 
     if (object.geometry.boundingBox) {
