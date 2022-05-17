@@ -32,6 +32,7 @@ import { LuminosityShader } from "three/examples/jsm/shaders/LuminosityShader.js
 import { SobelOperatorShader } from "three/examples/jsm/shaders/SobelOperatorShader.js";
 import { PLANE_HEIGHT } from "../components/Canvas";
 import { addEduContent } from "../components/three/education-section";
+import { addToolsContent } from "../components/three/tools-section";
 import { addProfileText } from "../components/three/profile-section";
 import { OrbitControls } from "../engine/three/OrbitControls";
 import ThreeDNode from "./ThreeDNode";
@@ -375,7 +376,7 @@ export default class Viewport {
         }
       });
 
-      new TWEEN.Tween({ height: -planeHeight / 2 - 0.1 })
+      new TWEEN.Tween({ height: -planeHeight / 2 - 1 })
         .to({ height: planeHeight / 2 })
         .easing(Easing.Linear.None)
         .onUpdate(({ height }, elapsed) => {
@@ -435,6 +436,9 @@ export default class Viewport {
         break;
       case 1:
         addEduContent(this);
+        break;
+      case 3:
+        addToolsContent(this);
         break;
     }
   }

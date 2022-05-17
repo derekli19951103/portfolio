@@ -10,11 +10,12 @@ import { loadFont } from "../engine/loaders/font-loader";
 import { loadObj } from "../engine/loaders/OBJLoader";
 import { createBreakingText } from "../engine/objects/BreakingText";
 import ThreeDNode from "../engine/ThreeDNode";
-import { inBetweenRandom } from "../engine/utils/math";
+import { getRandomPointInInterval } from "../engine/utils/math";
 import Viewport from "../engine/Viewport";
 import { useViewports } from "../store/viewports";
 
-export const PLANE_HEIGHT = 120;
+export const PLANE_HEIGHT = 150;
+export const PLANE_WIDTH = 400;
 
 export const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -56,7 +57,7 @@ export const Canvas = () => {
   };
 
   const addPlane = (gl: Viewport) => {
-    const geometry = new PlaneBufferGeometry(400, PLANE_HEIGHT);
+    const geometry = new PlaneBufferGeometry(PLANE_WIDTH, PLANE_HEIGHT);
 
     const mesh = new Mesh(
       geometry,
@@ -67,7 +68,7 @@ export const Canvas = () => {
 
     const node = new ThreeDNode(mesh);
 
-    node.object.position.set(0, -PLANE_HEIGHT / 2 - 0.1, 0);
+    node.object.position.set(0, -PLANE_HEIGHT / 2 - 1, 0);
 
     gl.addPlane(node);
   };
@@ -87,7 +88,7 @@ export const Canvas = () => {
       node.object.rotation.x = Math.PI / 2 + Math.random() * 10;
       node.object.userData = {
         isDolphin: true,
-        innateRotationSpeed: inBetweenRandom(2, 5) * 0.01,
+        innateRotationSpeed: getRandomPointInInterval(2, 5) * 0.01,
       };
       return node;
     };
@@ -95,19 +96,25 @@ export const Canvas = () => {
     for (let i = 0; i < 30; i++) {
       nodes.push(
         generateRandom(
-          inBetweenRandom(-1000, 1000),
-          inBetweenRandom(-1000, -50)
+          getRandomPointInInterval(-1000, 1000),
+          getRandomPointInInterval(-1000, -50)
         )
       );
     }
     for (let i = 0; i < 10; i++) {
       nodes.push(
-        generateRandom(inBetweenRandom(200, 1000), inBetweenRandom(0, 1000))
+        generateRandom(
+          getRandomPointInInterval(200, 1000),
+          getRandomPointInInterval(0, 1000)
+        )
       );
     }
     for (let i = 0; i < 10; i++) {
       nodes.push(
-        generateRandom(inBetweenRandom(-1000, -200), inBetweenRandom(0, 1000))
+        generateRandom(
+          getRandomPointInInterval(-1000, -200),
+          getRandomPointInInterval(0, 1000)
+        )
       );
     }
 

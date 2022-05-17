@@ -51,10 +51,10 @@ export const addEduContent = async (viewport: Viewport) => {
     object: t1.object,
     start: {
       x: 100,
-      y: 20,
+      y: 30,
       z: 0,
     },
-    end: { x: 10, y: 20, z: 0 },
+    end: { x: 10, y: 30, z: 0 },
     easing: TWEEN.Easing.Quadratic.InOut,
   }).start();
 

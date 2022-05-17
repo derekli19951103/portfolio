@@ -1,4 +1,16 @@
-import { Box3, BoxBufferGeometry, LoadingManager, Mesh, Vector3 } from "three";
+import {
+  Box3,
+  BoxBufferGeometry,
+  LineSegments,
+  LoadingManager,
+  Mesh,
+  Vector2,
+  Vector3,
+} from "three";
+import { Line2 } from "three/examples/jsm/lines/Line2";
+import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
+import { LineMaterial } from "three/examples/jsm/lines/LineMaterial";
+import { ThickWireframe } from "./utils/geometries";
 
 export default class ThreeDNode {
   object: Mesh;
@@ -6,9 +18,10 @@ export default class ThreeDNode {
   bbox: Box3;
   size = new Vector3();
   collisionBox: Mesh;
+  wire?: Line2;
 
   private _isRayCasted: boolean = false;
-  private onRayCasted?: (rayCasted: boolean) => void;
+  onRayCasted?: (rayCasted: boolean) => void;
 
   private _isSelected: boolean = false;
 
@@ -39,6 +52,25 @@ export default class ThreeDNode {
     );
     this.collisionBox.visible = false;
     this.object.add(this.collisionBox);
+  }
+
+  calculateWireframe(offset?: Vector3) {
+    const wire = new LineGeometry().fromLineSegments(
+      new LineSegments(ThickWireframe(this.bbox, offset || new Vector3()))
+    );
+
+    this.wire = new Line2(
+      wire,
+      new LineMaterial({
+        color: 0xffffff,
+        linewidth: 4,
+        resolution: new Vector2(window.innerWidth, window.innerHeight),
+      })
+    );
+
+    this.wire.visible = false;
+
+    this.object.add(this.wire);
   }
 
   get isSelected() {
