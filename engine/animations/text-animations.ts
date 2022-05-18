@@ -10,6 +10,7 @@ export const createTranslationAnimation = (params: {
   duration?: number;
 }) => {
   const { start, end, easing, object } = params;
+
   return new TWEEN.Tween(start)
     .to(end, params.duration)
     .easing(easing)

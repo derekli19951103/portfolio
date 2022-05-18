@@ -29,6 +29,7 @@ import { LuminosityShader } from "three/examples/jsm/shaders/LuminosityShader.js
 import { SobelOperatorShader } from "three/examples/jsm/shaders/SobelOperatorShader.js";
 import { PLANE_HEIGHT } from "../components/Canvas";
 import { addEduContent } from "../components/three/education-section";
+import { addLangContent } from "../components/three/language-section";
 import { addProfileText } from "../components/three/profile-section";
 import { addToolsContent } from "../components/three/tools-section";
 import { OrbitControls } from "../engine/three/OrbitControls";
@@ -118,25 +119,21 @@ export default class Viewport {
     // const lightHelper = new SpotLightHelper(this.mouseSpotLight);
     // this.scene.add(lightHelper);
 
-    canvas.addEventListener(
-      "mousemove",
-      (e) => {
-        this.pointer.x = (e.clientX / this.width) * 2 - 1;
-        this.pointer.y = -(e.clientY / this.height) * 2 + 1;
+    canvas.addEventListener("mousemove", (e) => {
+      this.pointer.x = (e.clientX / this.width) * 2 - 1;
+      this.pointer.y = -(e.clientY / this.height) * 2 + 1;
 
-        const vector = new Vector3(this.pointer.x, this.pointer.y, 0.5);
-        vector.unproject(this.camera);
-        const dir = vector.sub(this.camera.position).normalize();
-        const distance = -this.camera.position.z / dir.z;
-        const pos = this.camera.position
-          .clone()
-          .add(dir.multiplyScalar(distance));
-        this.mouseSpotLight.position.copy(
-          new Vector3(pos.x, pos.y, pos.z + mouseLightZHeight)
-        );
-      },
-      false
-    );
+      const vector = new Vector3(this.pointer.x, this.pointer.y, 0.5);
+      vector.unproject(this.camera);
+      const dir = vector.sub(this.camera.position).normalize();
+      const distance = -this.camera.position.z / dir.z;
+      const pos = this.camera.position
+        .clone()
+        .add(dir.multiplyScalar(distance));
+      this.mouseSpotLight.position.copy(
+        new Vector3(pos.x, pos.y, pos.z + mouseLightZHeight)
+      );
+    });
 
     this.orbitControls = new OrbitControls(this.camera, canvas);
     this.orbitControls.listenToKeyEvents(canvas);
@@ -243,7 +240,7 @@ export default class Viewport {
       });
     });
 
-    canvas.addEventListener("contextmenu", (e) => {
+    const loweringActions = () => {
       this.nodes.forEach((n) => {
         n.setSelected(false);
       });
@@ -256,6 +253,23 @@ export default class Viewport {
 
         this.removeFromContentGroup();
       }
+    };
+
+    canvas.addEventListener("contextmenu", loweringActions);
+
+    let tapedTwice = false;
+
+    canvas.addEventListener("touchstart", (event) => {
+      if (!tapedTwice) {
+        tapedTwice = true;
+        setTimeout(function () {
+          tapedTwice = false;
+        }, 300);
+        return false;
+      }
+      event.preventDefault();
+      //action on double tap goes below
+      loweringActions();
     });
   }
 
@@ -333,7 +347,8 @@ export default class Viewport {
               n.object.position.x =
                 origPos[userData.nameIndex].x -
                 (userData.nameIndex / 14 - 1.2) * 100 * elapsed;
-              const shrink = 1 - 0.002;
+              const shrink = 1 - 0.003;
+              1;
               const newScale = n.object.scale.divideScalar(
                 Math.pow(shrink, elapsed)
               );
@@ -388,7 +403,7 @@ export default class Viewport {
               n.object.position.x =
                 origPos[userData.nameIndex].x +
                 (userData.nameIndex / 14 - 1.2) * 100 * elapsed;
-              const shrink = 1 - 0.002;
+              const shrink = 1 - 0.003;
               const newScale = n.object.scale.multiplyScalar(
                 Math.pow(shrink, elapsed)
               );
@@ -434,6 +449,9 @@ export default class Viewport {
         break;
       case 1:
         addEduContent(this);
+        break;
+      case 2:
+        addLangContent(this);
         break;
       case 3:
         addToolsContent(this);

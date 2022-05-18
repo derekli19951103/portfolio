@@ -15,7 +15,6 @@ export const createStandardText = (
     font,
     size: params?.size || 20,
     height: params?.height || 0.1,
-    curveSegments: 4,
     bevelEnabled: false,
   });
 

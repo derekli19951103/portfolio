@@ -8,7 +8,6 @@ export const createWireframeText = (font: Font, text: string) => {
     font,
     size: 20,
     height: 0.1,
-    curveSegments: 4,
     bevelEnabled: false,
   });
 

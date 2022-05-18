@@ -15,7 +15,6 @@ export const createBreakingText = (
     font,
     size: 20,
     height: 3,
-    curveSegments: 4,
     bevelThickness: 1,
     bevelSize: 0.5,
     bevelEnabled: true,

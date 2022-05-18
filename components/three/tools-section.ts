@@ -14,7 +14,7 @@ export const addToolsContent = async (viewport: Viewport) => {
     { title: "GraphQL", size: 12, pos: { x: -50, y: 100 } },
     { title: "Three.js", size: 12, pos: { x: 50, y: 100 } },
     { title: "Node.js", size: 12, pos: { x: 0, y: 20 } },
-    { title: "Next.js", size: 12, pos: { x: 0, y: 130 } },
+    { title: "Next.js", size: 12, pos: { x: 0, y: 135 } },
     { title: "Diesel", size: 12, pos: { x: -20, y: 50 } },
     {
       title: "Async-graphql",
@@ -36,20 +36,20 @@ export const addToolsContent = async (viewport: Viewport) => {
   const nodes = tools.map((s) => {
     const { x, y } = s.pos;
     const t = createStandardText(font, s.title, { size: s.size });
-    t.calculateWireframe(new Vector3(4, 4, 1));
+    t.calculateWireframe(new Vector3(4, 3, 1));
     t.onRayCasted = (rayCasted) => {
       t.wire!.visible = rayCasted;
     };
     createTranslationAnimation({
       object: t.object,
       start: {
-        x: getRandomPointInInterval(50, 150) - x,
-        y: y + getRandomPointInInterval(50, 150),
-        z: 300,
+        x: getRandomPointInInterval(-500, 500) - x,
+        y: y + getRandomPointInInterval(-300, 300),
+        z: 200,
       },
       end: { x: x, y: y, z: 0 },
       easing: TWEEN.Easing.Linear.None,
-      duration: 300,
+      duration: getRandomPointInInterval(300, 500),
     }).start();
 
     return t;

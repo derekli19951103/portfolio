@@ -9,6 +9,7 @@ import Stats from "three/examples/jsm/libs/stats.module";
 import { loadFont } from "../engine/loaders/font-loader";
 import { loadObj } from "../engine/loaders/OBJLoader";
 import { createBreakingText } from "../engine/objects/BreakingText";
+import { createDupText } from "../engine/objects/DupText";
 import ThreeDNode from "../engine/ThreeDNode";
 import { getRandomPointInInterval } from "../engine/utils/math";
 import Viewport from "../engine/Viewport";

@@ -39,7 +39,7 @@ export const addEduContent = async (viewport: Viewport) => {
   createTranslationAnimation({
     object: node.object,
     start: {
-      x: -100,
+      x: 100,
       y: PLANE_HEIGHT / 2 + 10,
       z: 1,
     },
@@ -50,7 +50,7 @@ export const addEduContent = async (viewport: Viewport) => {
   createTranslationAnimation({
     object: t1.object,
     start: {
-      x: 100,
+      x: -100,
       y: 30,
       z: 0,
     },

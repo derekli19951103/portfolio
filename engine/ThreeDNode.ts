@@ -70,6 +70,7 @@ export default class ThreeDNode {
         color: 0xffffff,
         linewidth: 4,
         resolution: new Vector2(window.innerWidth, window.innerHeight),
+        alphaToCoverage: true,
       })
     );
 
