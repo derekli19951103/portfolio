@@ -1,4 +1,4 @@
-import { Mesh, MeshStandardMaterial, Vector3 } from "three";
+import { Mesh, MeshBasicMaterial, Vector3 } from "three";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry";
 import { Font } from "three/examples/jsm/loaders/FontLoader";
 import ThreeDNode from "../ThreeDNode";
@@ -24,7 +24,7 @@ export const createStandardText = (
   geometry.boundingBox!.getCenter(center);
   geometry.center();
 
-  const mesh = new Mesh(geometry, new MeshStandardMaterial());
+  const mesh = new Mesh(geometry, new MeshBasicMaterial());
 
   const node = new ThreeDNode(mesh);
 

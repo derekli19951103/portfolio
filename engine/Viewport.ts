@@ -3,19 +3,16 @@ import {
   ACESFilmicToneMapping,
   AmbientLight,
   CubeTextureLoader,
-  DirectionalLight,
   Group,
   Mesh,
   Object3D,
   PerspectiveCamera,
   PlaneGeometry,
-  PointLight,
   Raycaster,
   RepeatWrapping,
   Scene,
   ShaderMaterial,
   SpotLight,
-  SpotLightHelper,
   sRGBEncoding,
   TextureLoader,
   Vector2,
@@ -32,8 +29,8 @@ import { LuminosityShader } from "three/examples/jsm/shaders/LuminosityShader.js
 import { SobelOperatorShader } from "three/examples/jsm/shaders/SobelOperatorShader.js";
 import { PLANE_HEIGHT } from "../components/Canvas";
 import { addEduContent } from "../components/three/education-section";
-import { addToolsContent } from "../components/three/tools-section";
 import { addProfileText } from "../components/three/profile-section";
+import { addToolsContent } from "../components/three/tools-section";
 import { OrbitControls } from "../engine/three/OrbitControls";
 import ThreeDNode from "./ThreeDNode";
 
@@ -224,23 +221,24 @@ export default class Viewport {
 
     canvas.addEventListener("click", (e) => {
       this.nodes.forEach((n) => {
-        if (n.isRayCasted && n.object.userData.isName) {
+        if (n.isRayCasted) {
           n.setSelected(!n.isSelected);
+          if (n.object.userData.isName) {
+            const nameIndex = n.object.userData.nameIndex;
 
-          const nameIndex = n.object.userData.nameIndex;
+            if (!this.raised) {
+              this.camera.position.copy(this.originalCameraPos);
+              this.raisingAnimations();
+            } else {
+              if (this.selectedTabIndex !== nameIndex) {
+                this.removeFromContentGroup();
 
-          if (!this.raised) {
-            this.camera.position.copy(this.originalCameraPos);
-            this.raisingAnimations();
-          } else {
-            if (this.selectedTabIndex !== nameIndex) {
-              this.removeFromContentGroup();
-
-              this.switchContent(nameIndex);
+                this.switchContent(nameIndex);
+              }
             }
-          }
 
-          this.selectedTabIndex = nameIndex;
+            this.selectedTabIndex = nameIndex;
+          }
         }
       });
     });

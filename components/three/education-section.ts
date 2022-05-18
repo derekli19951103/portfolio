@@ -32,7 +32,7 @@ export const addEduContent = async (viewport: Viewport) => {
     "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json"
   );
 
-  const t1 = createStandardText(font, "B.A. in Computer Science - 2019", {
+  const t1 = createStandardText(font, "B.Sc. in Computer Science - 2019", {
     size: 10,
   });
 

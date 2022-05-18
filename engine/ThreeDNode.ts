@@ -24,16 +24,21 @@ export default class ThreeDNode {
   onRayCasted?: (rayCasted: boolean) => void;
 
   private _isSelected: boolean = false;
+  onSelected?: (selected: boolean) => void;
 
   loadingManager: LoadingManager = new LoadingManager();
 
   constructor(
     object: Mesh,
-    params?: { onRayCasted?: (rayCasted: boolean) => void }
+    params?: {
+      onRayCasted?: (rayCasted: boolean) => void;
+      onSelected?: (selected: boolean) => void;
+    }
   ) {
     this.object = object;
 
     this.onRayCasted = params?.onRayCasted;
+    this.onSelected = params?.onSelected;
 
     if (object.geometry.boundingBox) {
       this.bbox = object.geometry.boundingBox;
@@ -79,6 +84,9 @@ export default class ThreeDNode {
 
   setSelected(selected: boolean) {
     this._isSelected = selected;
+    if (this.onSelected) {
+      this.onSelected(selected);
+    }
   }
 
   get isRayCasted() {
