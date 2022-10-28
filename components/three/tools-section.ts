@@ -27,9 +27,7 @@ export const addToolsContent = async (viewport: Viewport) => {
     { title: "Docker", size: 8, pos: { x: -60, y: 120 } },
   ];
 
-  const font = await loadFont(
-    "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json"
-  );
+  const font = await loadFont("/fonts/helvetiker_regular.typeface.json");
 
   const nodes = tools.map((s) => {
     const { x, y } = s.pos;

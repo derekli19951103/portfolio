@@ -1,10 +1,5 @@
 import { useEffect, useRef } from "react";
-import {
-  DoubleSide,
-  Mesh,
-  MeshBasicMaterial,
-  PlaneBufferGeometry,
-} from "three";
+import { DoubleSide, Mesh, MeshBasicMaterial, PlaneGeometry } from "three";
 import Stats from "three/examples/jsm/libs/stats.module";
 import { loadFont } from "../engine/loaders/font-loader";
 import { loadObj } from "../engine/loaders/OBJLoader";
@@ -26,9 +21,7 @@ export const Canvas = () => {
   const gl = viewports.viewport1;
 
   const addName = async (gl: Viewport) => {
-    const font = await loadFont(
-      "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json"
-    );
+    const font = await loadFont("/fonts/helvetiker_regular.typeface.json");
     const frag = await (await fetch("/shaders/frag.glsl")).text();
     const vert = await (await fetch("/shaders/vert.glsl")).text();
     const y = createBreakingText(font, frag, vert, "Y", 0);
@@ -57,7 +50,7 @@ export const Canvas = () => {
   };
 
   const addPlane = (gl: Viewport) => {
-    const geometry = new PlaneBufferGeometry(PLANE_WIDTH, PLANE_HEIGHT);
+    const geometry = new PlaneGeometry(PLANE_WIDTH, PLANE_HEIGHT);
 
     const mesh = new Mesh(
       geometry,

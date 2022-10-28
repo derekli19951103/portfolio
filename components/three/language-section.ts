@@ -34,9 +34,7 @@ export const addLangContent = async (viewport: Viewport) => {
     },
   ];
 
-  const font = await loadFont(
-    "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json"
-  );
+  const font = await loadFont("/fonts/helvetiker_regular.typeface.json");
 
   const nodes = langs.map((s, i) => {
     const { x, y } = s.pos;

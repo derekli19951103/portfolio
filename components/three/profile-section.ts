@@ -6,9 +6,7 @@ import Viewport from "../../engine/Viewport";
 import { PLANE_HEIGHT } from "../Canvas";
 
 export const addProfileText = async (viewport: Viewport) => {
-  const font = await loadFont(
-    "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json"
-  );
+  const font = await loadFont("/fonts/helvetiker_regular.typeface.json");
 
   const t1 = createWireframeText(font, "Fullstack");
   const t2 = createWireframeText(font, "Developer");

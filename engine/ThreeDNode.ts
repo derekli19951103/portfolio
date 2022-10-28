@@ -1,12 +1,4 @@
-import {
-  Box3,
-  BoxBufferGeometry,
-  LineSegments,
-  LoadingManager,
-  Mesh,
-  Vector2,
-  Vector3,
-} from "three";
+import { Box3, LineSegments, Mesh, Vector2, Vector3 } from "three";
 import { Line2 } from "three/examples/jsm/lines/Line2";
 import { LineGeometry } from "three/examples/jsm/lines/LineGeometry.js";
 import { LineMaterial } from "three/examples/jsm/lines/LineMaterial";
@@ -17,7 +9,7 @@ export default class ThreeDNode {
 
   bbox: Box3;
   size = new Vector3();
-  collisionBox: Mesh;
+
   wire?: Line2;
 
   private _isRayCasted: boolean = false;
@@ -25,8 +17,6 @@ export default class ThreeDNode {
 
   private _isSelected: boolean = false;
   onSelected?: (selected: boolean) => void;
-
-  loadingManager: LoadingManager = new LoadingManager();
 
   constructor(
     object: Mesh,
@@ -47,16 +37,6 @@ export default class ThreeDNode {
     }
 
     this.bbox.getSize(this.size);
-
-    this.collisionBox = new Mesh(
-      new BoxBufferGeometry(
-        this.bbox.max.x - this.bbox.min.x,
-        this.bbox.max.y - this.bbox.min.y,
-        this.bbox.max.z - this.bbox.min.z
-      )
-    );
-    this.collisionBox.visible = false;
-    this.object.add(this.collisionBox);
   }
 
   calculateWireframe(offset?: Vector3) {
