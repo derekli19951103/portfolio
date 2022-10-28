@@ -1,19 +1,8 @@
-import {
-  CatmullRomCurve3,
-  ExtrudeBufferGeometry,
-  ExtrudeGeometry,
-  LineCurve3,
-  Mesh,
-  MeshBasicMaterial,
-  QuadraticBezierCurve,
-  QuadraticBezierCurve3,
-  ShapeGeometry,
-  Vector3,
-} from "three";
+import TWEEN from "@tweenjs/tween.js";
+import { Mesh, MeshBasicMaterial, ShapeGeometry, Vector3 } from "three";
 import { Font } from "three/examples/jsm/loaders/FontLoader";
 import { createTranslationAnimation } from "../animations/text-animations";
 import ThreeDNode from "../ThreeDNode";
-import TWEEN from "@tweenjs/tween.js";
 
 export const createDupText = (
   font: Font,
