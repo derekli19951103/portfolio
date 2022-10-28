@@ -25,8 +25,6 @@ export const addToolsContent = async (viewport: Viewport) => {
     { title: "PostgreSQL", size: 10, pos: { x: 60, y: 50 } },
     { title: "Kubernetes", size: 8, pos: { x: 80, y: 25 } },
     { title: "Docker", size: 8, pos: { x: -60, y: 120 } },
-    { title: "Mobx", size: 8, pos: { x: -60, y: 25 } },
-    { title: "Spring Boot", size: 12, pos: { x: -100, y: 50 } },
   ];
 
   const font = await loadFont(
@@ -49,7 +47,7 @@ export const addToolsContent = async (viewport: Viewport) => {
       },
       end: { x: x, y: y, z: 0 },
       easing: TWEEN.Easing.Linear.None,
-      duration: getRandomPointInInterval(300, 500),
+      duration: getRandomPointInInterval(500, 800),
     }).start();
 
     return t;
