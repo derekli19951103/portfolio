@@ -9,22 +9,37 @@ import { PLANE_HEIGHT } from "../Canvas";
 
 export const addToolsContent = async (viewport: Viewport) => {
   const tools = [
-    { title: "React", size: 18, pos: { x: -140, y: PLANE_HEIGHT / 2 + 3 } },
-    { title: "Angular", size: 18, pos: { x: 130, y: PLANE_HEIGHT / 2 } },
-    { title: "GraphQL", size: 12, pos: { x: -50, y: 100 } },
-    { title: "Three.js", size: 12, pos: { x: 50, y: 100 } },
-    { title: "Node.js", size: 12, pos: { x: 0, y: 20 } },
-    { title: "Next.js", size: 12, pos: { x: 0, y: 135 } },
-    { title: "Diesel", size: 12, pos: { x: -20, y: 50 } },
+    { title: "React", size: 18, pos: { x: -140, y: PLANE_HEIGHT / 2 } },
+    { title: "Three.js", size: 12, pos: { x: -140, y: PLANE_HEIGHT / 2 - 30 } },
+    { title: "Mobx", size: 12, pos: { x: -140, y: PLANE_HEIGHT / 2 - 60 } },
+    { title: "Next.js", size: 12, pos: { x: -140, y: PLANE_HEIGHT / 2 + 30 } },
+    { title: "GraphQL", size: 12, pos: { x: -140, y: PLANE_HEIGHT / 2 + 60 } },
+
+    { title: "Angular", size: 18, pos: { x: -50, y: PLANE_HEIGHT / 2 } },
+    { title: "Rxjs", size: 12, pos: { x: -50, y: PLANE_HEIGHT / 2 - 30 } },
+    { title: "MongoDB", size: 12, pos: { x: -50, y: PLANE_HEIGHT / 2 - 60 } },
+    { title: "SSR", size: 12, pos: { x: -50, y: PLANE_HEIGHT / 2 + 30 } },
+    { title: "AWS", size: 12, pos: { x: -50, y: PLANE_HEIGHT / 2 + 60 } },
+
+    { title: "Rust", size: 18, pos: { x: 50, y: PLANE_HEIGHT / 2 } },
+    { title: "PostgreSQL", size: 12, pos: { x: 50, y: PLANE_HEIGHT / 2 - 30 } },
+    { title: "Diesel", size: 12, pos: { x: 50, y: PLANE_HEIGHT / 2 - 60 } },
     {
       title: "Async-graphql",
-      size: 18,
-      pos: { x: -10, y: PLANE_HEIGHT / 2 },
+      size: 12,
+      pos: { x: 50, y: PLANE_HEIGHT / 2 + 30 },
     },
-    { title: "MongoDB", size: 8, pos: { x: 60, y: 120 } },
-    { title: "PostgreSQL", size: 10, pos: { x: 60, y: 50 } },
-    { title: "Kubernetes", size: 8, pos: { x: 80, y: 25 } },
-    { title: "Docker", size: 8, pos: { x: -60, y: 120 } },
+    { title: "GRPC", size: 12, pos: { x: 50, y: PLANE_HEIGHT / 2 + 60 } },
+
+    { title: "Node.js", size: 12, pos: { x: 150, y: PLANE_HEIGHT / 2 } },
+    { title: "Python", size: 12, pos: { x: 150, y: PLANE_HEIGHT / 2 - 30 } },
+    { title: "Java", size: 12, pos: { x: 150, y: PLANE_HEIGHT / 2 - 60 } },
+    { title: "Docker", size: 12, pos: { x: 150, y: PLANE_HEIGHT / 2 + 30 } },
+    {
+      title: "Kubernetes",
+      size: 12,
+      pos: { x: 150, y: PLANE_HEIGHT / 2 + 60 },
+    },
   ];
 
   const font = await loadFont("/fonts/helvetiker_regular.typeface.json");

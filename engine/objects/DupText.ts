@@ -47,7 +47,7 @@ export const createDupText = (
       y: mesh.position.y + shadowGap,
       z: mesh.position.z - shadowGap,
     },
-    easing: TWEEN.Easing.Quadratic.Out,
+    easing: TWEEN.Easing.Quadratic.InOut,
   });
 
   const s2Animation = createTranslationAnimation({
@@ -62,7 +62,7 @@ export const createDupText = (
       y: mesh.position.y - shadowGap,
       z: mesh.position.z + shadowGap,
     },
-    easing: TWEEN.Easing.Quadratic.Out,
+    easing: TWEEN.Easing.Quadratic.InOut,
   });
 
   node.onRayCasted = (rayCasted) => {

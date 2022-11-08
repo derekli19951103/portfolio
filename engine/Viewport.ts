@@ -1,4 +1,6 @@
 import TWEEN, { Easing } from "@tweenjs/tween.js";
+import { addContactContent } from "components/three/contact-section";
+import { addIntroContent } from "components/three/intro-section";
 import {
   ACESFilmicToneMapping,
   AmbientLight,
@@ -29,7 +31,6 @@ import { LuminosityShader } from "three/examples/jsm/shaders/LuminosityShader.js
 import { SobelOperatorShader } from "three/examples/jsm/shaders/SobelOperatorShader.js";
 import { PLANE_HEIGHT } from "../components/Canvas";
 import { addEduContent } from "../components/three/education-section";
-import { addLangContent } from "../components/three/language-section";
 import { addProfileText } from "../components/three/profile-section";
 import { addToolsContent } from "../components/three/tools-section";
 import { OrbitControls } from "../engine/three/OrbitControls";
@@ -449,13 +450,22 @@ export default class Viewport {
         addProfileText(this);
         break;
       case 1:
+        this.mouseSpotLight.visible = true;
         addEduContent(this);
         break;
       case 2:
-        addLangContent(this);
+        addIntroContent(this);
         break;
       case 3:
         addToolsContent(this);
+        break;
+      case 6:
+        this.mouseSpotLight.visible = false;
+        addContactContent(this);
+        break;
+      case 7:
+        this.mouseSpotLight.visible = false;
+        addContactContent(this);
         break;
     }
   }

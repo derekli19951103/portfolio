@@ -6,6 +6,11 @@ export interface Coord3 {
   z: number;
 }
 
+export interface Coord2 {
+  x: number;
+  y: number;
+}
+
 export interface TextAnimation {
   animation: Tween<Coord3>;
   start: Coord3;

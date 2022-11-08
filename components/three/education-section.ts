@@ -1,9 +1,7 @@
 import TWEEN from "@tweenjs/tween.js";
 import {
   AdditiveBlending,
-  DoubleSide,
   Mesh,
-  MeshBasicMaterial,
   MeshStandardMaterial,
   PlaneGeometry,
   TextureLoader,
