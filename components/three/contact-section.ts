@@ -56,9 +56,9 @@ export const addContactContent = async (viewport: Viewport) => {
     start: {
       x: -PLANE_WIDTH / 2 - 80,
       y: PLANE_HEIGHT / 2 + 40,
-      z: 0,
+      z: 1,
     },
-    end: { x: -PLANE_WIDTH / 2 + 60, y: PLANE_HEIGHT / 2 + 40, z: 0 },
+    end: { x: -PLANE_WIDTH / 2 + 60, y: PLANE_HEIGHT / 2 + 40, z: 1 },
     easing: TWEEN.Easing.Linear.None,
     duration: 500,
   }).start();
@@ -80,9 +80,9 @@ export const addContactContent = async (viewport: Viewport) => {
     start: {
       x: -PLANE_WIDTH / 2 - 80,
       y: PLANE_HEIGHT / 2 - 40,
-      z: 0,
+      z: 1,
     },
-    end: { x: -PLANE_WIDTH / 2 + 60, y: PLANE_HEIGHT / 2 - 40, z: 0 },
+    end: { x: -PLANE_WIDTH / 2 + 60, y: PLANE_HEIGHT / 2 - 40, z: 1 },
     easing: TWEEN.Easing.Linear.None,
     duration: 500,
   }).start();
