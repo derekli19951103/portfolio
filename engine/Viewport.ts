@@ -15,6 +15,7 @@ import {
   Scene,
   ShaderMaterial,
   SpotLight,
+  SpotLightHelper,
   sRGBEncoding,
   TextureLoader,
   Vector2,
@@ -118,8 +119,8 @@ export default class Viewport {
     );
     this.scene.add(this.mouseSpotLight);
     this.mouseSpotLight.position.set(0, 0, mouseLightZHeight);
-    // const lightHelper = new SpotLightHelper(this.mouseSpotLight);
-    // this.scene.add(lightHelper);
+    const lightHelper = new SpotLightHelper(this.mouseSpotLight);
+    this.scene.add(lightHelper);
 
     canvas.addEventListener("mousemove", (e) => {
       this.pointer.x = (e.clientX / this.width) * 2 - 1;
