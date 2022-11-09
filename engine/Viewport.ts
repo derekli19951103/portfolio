@@ -57,6 +57,7 @@ export default class Viewport {
   raycaster: Raycaster = new Raycaster();
   pointer: Vector2 = new Vector2();
   mouseSpotLight: SpotLight;
+  spotLightHelper: SpotLightHelper;
 
   width: number;
   height: number;
@@ -119,8 +120,8 @@ export default class Viewport {
     );
     this.scene.add(this.mouseSpotLight);
     this.mouseSpotLight.position.set(0, 0, mouseLightZHeight);
-    const lightHelper = new SpotLightHelper(this.mouseSpotLight);
-    this.scene.add(lightHelper);
+    this.spotLightHelper = new SpotLightHelper(this.mouseSpotLight);
+    this.scene.add(this.spotLightHelper);
 
     canvas.addEventListener("mousemove", (e) => {
       this.pointer.x = (e.clientX / this.width) * 2 - 1;

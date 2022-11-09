@@ -8,6 +8,7 @@ import ThreeDNode from "../engine/ThreeDNode";
 import { getRandomPointInInterval } from "../engine/utils/math";
 import Viewport from "../engine/Viewport";
 import { useViewports } from "../store/viewports";
+import { useMediaQuery } from "react-responsive";
 
 export const PLANE_HEIGHT = 150;
 export const PLANE_WIDTH = 400;
@@ -19,6 +20,16 @@ export const Canvas = () => {
 
   const { viewports, setViewports } = useViewports();
   const gl = viewports.viewport1;
+
+  const isBigScreen = useMediaQuery({ query: "(min-width: 1824px)" });
+  const isTabletOrMobile = useMediaQuery({ query: "(max-width: 1224px)" });
+  const isPortrait = useMediaQuery({ query: "(orientation: portrait)" });
+
+  useEffect(() => {
+    if (gl) {
+      gl.spotLightHelper.visible = !isTabletOrMobile;
+    }
+  }, [isTabletOrMobile, gl]);
 
   const addName = async (gl: Viewport) => {
     const font = await loadFont("/fonts/helvetiker_regular.typeface.json");
