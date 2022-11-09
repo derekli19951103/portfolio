@@ -238,6 +238,13 @@ export default class Viewport {
 
             this.selectedTabIndex = nameIndex;
           }
+
+          if (n.object.userData.type === "linkedin") {
+            window.open("https://www.linkedin.com/in/yufeng-li-567a3517a/");
+          }
+          if (n.object.userData.type === "github") {
+            window.open("https://github.com/derekli19951103");
+          }
         }
       });
     });

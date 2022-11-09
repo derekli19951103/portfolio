@@ -3,10 +3,14 @@ import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry";
 import { Font } from "three/examples/jsm/loaders/FontLoader";
 import ThreeDNode from "../ThreeDNode";
 
-export const createWireframeText = (font: Font, text: string) => {
+export const createWireframeText = (
+  font: Font,
+  text: string,
+  options?: { size?: number }
+) => {
   const geometry = new TextGeometry(text, {
     font,
-    size: 20,
+    size: options?.size || 20,
     height: 0.1,
     bevelEnabled: false,
   });

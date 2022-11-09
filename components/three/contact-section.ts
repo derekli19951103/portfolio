@@ -12,6 +12,7 @@ import { loadFont } from "../../engine/loaders/font-loader";
 import Viewport from "../../engine/Viewport";
 import TWEEN from "@tweenjs/tween.js";
 import { createStandardText } from "engine/objects/StandardText";
+import { createWireframeText } from "engine/objects/WireframeText";
 
 export const addContactContent = async (viewport: Viewport) => {
   const font = await loadFont("/fonts/helvetiker_regular.typeface.json");
@@ -36,20 +37,23 @@ export const addContactContent = async (viewport: Viewport) => {
 
   const githubPic = new ThreeDNode(githubMesh);
 
-  const linkedinLink = createStandardText(
+  const linkedinLink = createWireframeText(
     font,
     "https://www.linkedin.com/in/yufeng-li-567a3517a/",
     {
       size: 8,
     }
   );
-  const githubLink = createStandardText(
+  const githubLink = createWireframeText(
     font,
     "https://github.com/derekli19951103",
     {
       size: 8,
     }
   );
+
+  linkedinLink.object.userData = { type: "linkedin" };
+  githubLink.object.userData = { type: "github" };
 
   createTranslationAnimation({
     object: linkedInPic.object,
