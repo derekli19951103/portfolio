@@ -503,13 +503,11 @@ export default class Viewport {
           subsets.push(o as Mesh);
         }
       });
-      const intersect = this.raycaster.intersectObjects([n.object], false);
-      const subsetIntersect = this.raycaster.intersectObjects(subsets, false);
-      if (intersect.length || subsetIntersect.length) {
-        n.setRayCasted(true);
-      } else {
-        n.setRayCasted(false);
-      }
+      const intersect = this.raycaster.intersectObjects(
+        [n.object, ...subsets],
+        false
+      );
+      n.setRayCasted(intersect.length > 0);
     });
 
     this.composer.render();
