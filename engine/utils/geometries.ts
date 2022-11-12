@@ -1,4 +1,4 @@
-import { Box3, BufferGeometry, Vector2, Vector3 } from "three";
+import { Box3, BufferGeometry, Vector3 } from "three";
 
 export const ThickWireframe = (bbox: Box3, offset: Vector3) => {
   const bboxMin = bbox.min.addScaledVector(offset, -1);

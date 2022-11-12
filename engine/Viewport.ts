@@ -1,6 +1,7 @@
 import TWEEN, { Easing } from "@tweenjs/tween.js";
 import { addContactContent } from "components/three/contact-section";
 import { addIntroContent } from "components/three/intro-section";
+import { addResumeContent } from "components/three/resume-section";
 import {
   ACESFilmicToneMapping,
   AmbientLight,
@@ -111,16 +112,16 @@ export default class Viewport {
     const ambientLight = new AmbientLight(0xcccccc, 0.4);
     this.scene.add(ambientLight);
 
-    const mouseLightZHeight = 50;
+    const mouseLightZHeight = 30;
     this.mouseSpotLight = new SpotLight(
       0xffffff,
-      10,
+      5,
       mouseLightZHeight + 10,
       Math.PI / 2
     );
     this.scene.add(this.mouseSpotLight);
     this.mouseSpotLight.position.set(0, 0, mouseLightZHeight);
-    this.spotLightHelper = new SpotLightHelper(this.mouseSpotLight);
+    this.spotLightHelper = new SpotLightHelper(this.mouseSpotLight, 0x111111);
     this.scene.add(this.spotLightHelper);
 
     canvas.addEventListener("mousemove", (e) => {
@@ -246,6 +247,9 @@ export default class Viewport {
           }
           if (n.object.userData.type === "github") {
             window.open("https://github.com/derekli19951103");
+          }
+          if (n.object.userData.isRotatingCube) {
+            window.open("/Resume.pdf");
           }
         }
       });
@@ -453,6 +457,15 @@ export default class Viewport {
     });
   }
 
+  animteRotatingCube() {
+    this.nodes.forEach((n) => {
+      if (n.object.userData.isRotatingCube) {
+        n.object.rotation.x -= 0.01;
+        n.object.rotation.y -= 0.01;
+      }
+    });
+  }
+
   switchContent(nameIndex?: number) {
     switch (nameIndex) {
       case 0:
@@ -474,7 +487,7 @@ export default class Viewport {
         break;
       case 7:
         this.mouseSpotLight.visible = false;
-        addContactContent(this);
+        addResumeContent(this);
         break;
     }
   }
@@ -492,6 +505,7 @@ export default class Viewport {
 
     this.animateName();
     this.animateDolphins();
+    this.animteRotatingCube();
 
     this.orbitControls.update();
 
@@ -508,6 +522,13 @@ export default class Viewport {
         false
       );
       n.setRayCasted(intersect.length > 0);
+
+      if (n.isRayCasted) {
+        if (n.object.userData.isRotatingCube) {
+          n.object.rotation.x -= 0.02;
+          n.object.rotation.y -= 0.02;
+        }
+      }
     });
 
     this.composer.render();

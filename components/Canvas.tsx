@@ -65,7 +65,7 @@ export const Canvas = () => {
 
     const mesh = new Mesh(
       geometry,
-      new MeshBasicMaterial({ color: "black", side: DoubleSide })
+      new MeshBasicMaterial({ color: "black", side: DoubleSide, opacity: 0.5 })
     );
 
     mesh.userData = { isPlane: true };
@@ -73,6 +73,8 @@ export const Canvas = () => {
     const node = new ThreeDNode(mesh);
 
     node.object.position.set(0, -PLANE_HEIGHT / 2 - 1, 0);
+
+    node.object.visible = false;
 
     gl.addPlane(node);
   };

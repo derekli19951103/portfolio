@@ -16,13 +16,12 @@ import { PLANE_HEIGHT } from "../Canvas";
 export const addEduContent = async (viewport: Viewport) => {
   const geo = new PlaneGeometry(180, 60);
 
-  const mesh = new Mesh(
-    geo,
-    new MeshStandardMaterial({
-      map: new TextureLoader().load("/textures/uoft.png"),
-      blending: AdditiveBlending,
-    })
-  );
+  const mat = new MeshStandardMaterial({
+    map: new TextureLoader().load("/textures/uoft.jpg"),
+    blending: AdditiveBlending,
+  });
+
+  const mesh = new Mesh(geo, mat);
 
   const node = new ThreeDNode(mesh);
 
