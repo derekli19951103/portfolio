@@ -322,20 +322,6 @@ export default class Viewport {
     this.scene.add(node.object);
   }
 
-  animateName() {
-    const time = Date.now() * 0.001;
-    this.nodes.forEach((n) => {
-      if (n.object.userData.isName) {
-        if (n.isRayCasted || n.isSelected) {
-          (n.object.material as ShaderMaterial).uniforms.amplitude.value =
-            1.0 + Math.sin(time * 0.5);
-        } else {
-          (n.object.material as ShaderMaterial).uniforms.amplitude.value = 0;
-        }
-      }
-    });
-  }
-
   lowerAnimations() {
     if (this.plane) {
       const planeHeight = this.plane.size.y;
@@ -449,6 +435,20 @@ export default class Viewport {
     }
   }
 
+  animateName() {
+    const time = Date.now() * 0.001;
+    this.nodes.forEach((n) => {
+      if (n.object.userData.isName) {
+        if (n.isRayCasted || n.isSelected) {
+          (n.object.material as ShaderMaterial).uniforms.amplitude.value =
+            1.0 + Math.sin(time * 0.5);
+        } else {
+          (n.object.material as ShaderMaterial).uniforms.amplitude.value = 0;
+        }
+      }
+    });
+  }
+
   animateDolphins() {
     this.nodes.forEach((n) => {
       if (n.object.userData.isDolphin) {
@@ -510,17 +510,7 @@ export default class Viewport {
     this.orbitControls.update();
 
     this.nodes.forEach((n) => {
-      const subsets: Mesh[] = [];
-      n.object.traverse((o) => {
-        //@ts-ignore
-        if (o.isMesh) {
-          subsets.push(o as Mesh);
-        }
-      });
-      const intersect = this.raycaster.intersectObjects(
-        [n.object, ...subsets],
-        false
-      );
+      const intersect = this.raycaster.intersectObject(n.object, true);
       n.setRayCasted(intersect.length > 0);
 
       if (n.isRayCasted) {

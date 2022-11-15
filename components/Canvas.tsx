@@ -9,6 +9,7 @@ import { getRandomPointInInterval } from "../engine/utils/math";
 import Viewport from "../engine/Viewport";
 import { useViewports } from "../store/viewports";
 import { useMediaQuery } from "react-responsive";
+import { TransparentBox } from "engine/objects/TransparentBox";
 
 export const PLANE_HEIGHT = 150;
 export const PLANE_WIDTH = 400;
@@ -35,29 +36,22 @@ export const Canvas = () => {
     const font = await loadFont("/fonts/helvetiker_regular.typeface.json");
     const frag = await (await fetch("/shaders/frag.glsl")).text();
     const vert = await (await fetch("/shaders/vert.glsl")).text();
-    const y = createBreakingText(font, frag, vert, "Y", 0);
-    const u = createBreakingText(font, frag, vert, "U", 1);
-    const f = createBreakingText(font, frag, vert, "F", 2);
-    const e = createBreakingText(font, frag, vert, "E", 3);
-    const n = createBreakingText(font, frag, vert, "N", 4);
-    const g = createBreakingText(font, frag, vert, "G", 5);
-    const l = createBreakingText(font, frag, vert, "L", 6);
-    const i = createBreakingText(font, frag, vert, "I", 7);
 
     const height = 15;
     const start = -55;
     const gap = 20;
 
-    y.object.position.set(start, height, 0);
-    u.object.position.set(start + gap, height, 0);
-    f.object.position.set(start + 2 * gap, height, 0);
-    e.object.position.set(start + 3 * gap, height, 0);
-    n.object.position.set(start + 4 * gap, height, 0);
-    g.object.position.set(start + 5 * gap, height, 0);
-    l.object.position.set(start + 7 * gap, height, 0);
-    i.object.position.set(start + 8 * gap, height, 0);
+    const names = [];
+    const nameSeg = "YUFENGLI".split("");
+    for (let i = 0; i < nameSeg.length; i++) {
+      const seg = createBreakingText(font, frag, vert, nameSeg[i]);
+      seg.object.userData = { isName: true, nameIndex: i };
+      seg.object.position.set(start + gap * (i > 5 ? i + 1 : i), height, 0);
+      seg.object.add(TransparentBox(seg));
+      names.push(seg);
+    }
 
-    gl.add(y, u, f, e, n, g, l, i);
+    gl.add(...names);
   };
 
   const addPlane = (gl: Viewport) => {
@@ -151,6 +145,14 @@ export const Canvas = () => {
       });
     }
   }, []);
+
+  useEffect(() => {
+    window.addEventListener("keypress", (ev) => {
+      if (ev.key === "p") {
+        console.log(gl?.nodes.filter((n) => n.object.userData.isName));
+      }
+    });
+  }, [gl]);
 
   /**
    * Render

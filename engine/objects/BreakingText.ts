@@ -8,8 +8,7 @@ export const createBreakingText = (
   font: Font,
   fragmentShader: string,
   vertexShader: string,
-  text: string,
-  nameIndex: number
+  text: string
 ) => {
   let geometry = new TextGeometry(text, {
     font,
@@ -67,7 +66,6 @@ export const createBreakingText = (
   });
 
   const mesh = new Mesh(geometry, shaderMaterial);
-  mesh.userData = { isName: true, nameIndex };
 
   const node = new ThreeDNode(mesh);
 
