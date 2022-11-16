@@ -79,6 +79,7 @@ export default class Viewport {
   displayContent = new Group();
 
   activeIntervals: number[] = [];
+  activeTimeouts: number[] = [];
 
   constructor(props: {
     canvas: HTMLCanvasElement;
@@ -341,6 +342,7 @@ export default class Viewport {
     this.nodes = this.nodes.filter((n) => !uuids.includes(n.object.uuid));
     this.displayContent.clear();
     this.clearActiveIntervals();
+    this.clearActiveTimeouts();
   }
 
   addPlane(node: ThreeDNode) {
@@ -501,6 +503,15 @@ export default class Viewport {
     this.activeIntervals = [];
   }
 
+  addToActiveTimeouts(...numbers: number[]) {
+    this.activeTimeouts.push(...numbers);
+  }
+
+  clearActiveTimeouts() {
+    this.activeTimeouts.forEach((ac) => window.clearInterval(ac));
+    this.activeTimeouts = [];
+  }
+
   switchContent(nameIndex?: number | string) {
     this.mouseSpotLight.visible = true;
     this.orbitControls.enableRotate = true;
@@ -523,9 +534,11 @@ export default class Viewport {
         this.orbitControls.enableRotate = false;
         this.camera.position.copy(this.facingCameraPos);
         addGameCountdown(this);
-        setTimeout(() => {
-          addFighterJetGame(this);
-        }, 3500);
+        this.addToActiveTimeouts(
+          window.setTimeout(() => {
+            addFighterJetGame(this);
+          }, 3500)
+        );
         break;
       case 6:
         this.mouseSpotLight.visible = false;

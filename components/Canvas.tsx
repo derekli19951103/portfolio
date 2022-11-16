@@ -1,4 +1,7 @@
+import { PLANE_HEIGHT, PLANE_WIDTH } from "constant";
+import { TransparentBox } from "engine/objects/TransparentBox";
 import { useEffect, useRef } from "react";
+import { useMediaQuery } from "react-responsive";
 import { DoubleSide, Mesh, MeshBasicMaterial, PlaneGeometry } from "three";
 import Stats from "three/examples/jsm/libs/stats.module";
 import { loadFont } from "../engine/loaders/font-loader";
@@ -8,9 +11,7 @@ import ThreeDNode from "../engine/ThreeDNode";
 import { getRandomPointInInterval } from "../engine/utils/math";
 import Viewport from "../engine/Viewport";
 import { useViewports } from "../store/viewports";
-import { useMediaQuery } from "react-responsive";
-import { TransparentBox } from "engine/objects/TransparentBox";
-import { PLANE_HEIGHT, PLANE_WIDTH } from "constant";
+import { HintOrientation } from "./HintOrientation";
 
 export const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -23,11 +24,6 @@ export const Canvas = () => {
   const isBigScreen = useMediaQuery({ query: "(min-width: 1824px)" });
   const isTabletOrMobile = useMediaQuery({ query: "(max-width: 1224px)" });
   const isPortrait = useMediaQuery({ query: "(orientation: portrait)" });
-
-  useEffect(() => {
-    if (gl) {
-    }
-  }, [gl]);
 
   const addName = async (gl: Viewport) => {
     const font = await loadFont("/fonts/helvetiker_regular.typeface.json");
@@ -141,7 +137,7 @@ export const Canvas = () => {
         viewport1: viewport,
       });
     }
-  }, []);
+  }, [isTabletOrMobile, isPortrait]);
 
   useEffect(() => {
     window.addEventListener("keypress", (ev) => {
@@ -167,7 +163,11 @@ export const Canvas = () => {
         <nav style={{ position: "absolute" }}>
           <div ref={statsRef} className="statsContainer" />
         </nav>
-        <canvas ref={canvasRef} tabIndex={1} />
+        {isTabletOrMobile && isPortrait ? (
+          <HintOrientation />
+        ) : (
+          <canvas ref={canvasRef} tabIndex={1} />
+        )}
       </div>
     </>
   );
