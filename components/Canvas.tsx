@@ -10,9 +10,7 @@ import Viewport from "../engine/Viewport";
 import { useViewports } from "../store/viewports";
 import { useMediaQuery } from "react-responsive";
 import { TransparentBox } from "engine/objects/TransparentBox";
-
-export const PLANE_HEIGHT = 150;
-export const PLANE_WIDTH = 400;
+import { PLANE_HEIGHT, PLANE_WIDTH } from "constant";
 
 export const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -148,7 +146,7 @@ export const Canvas = () => {
   useEffect(() => {
     window.addEventListener("keypress", (ev) => {
       if (ev.key === "p") {
-        console.log(gl?.nodes.filter((n) => n.object.userData.isName));
+        console.log(gl?.nodes.filter((n) => n.object.userData.isBullet));
       }
     });
   }, [gl]);

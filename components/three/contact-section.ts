@@ -1,5 +1,7 @@
-import { PLANE_HEIGHT, PLANE_WIDTH } from "components/Canvas";
+import TWEEN from "@tweenjs/tween.js";
+import { PLANE_HEIGHT, PLANE_WIDTH } from "constant";
 import { createTranslationAnimation } from "engine/animations/text-animations";
+import { createWireframeText } from "engine/objects/WireframeText";
 import ThreeDNode from "engine/ThreeDNode";
 import {
   AdditiveBlending,
@@ -10,9 +12,6 @@ import {
 } from "three";
 import { loadFont } from "../../engine/loaders/font-loader";
 import Viewport from "../../engine/Viewport";
-import TWEEN from "@tweenjs/tween.js";
-import { createStandardText } from "engine/objects/StandardText";
-import { createWireframeText } from "engine/objects/WireframeText";
 
 export const addContactContent = async (viewport: Viewport) => {
   const font = await loadFont("/fonts/helvetiker_regular.typeface.json");
@@ -52,8 +51,12 @@ export const addContactContent = async (viewport: Viewport) => {
     }
   );
 
-  linkedinLink.object.userData = { type: "linkedin" };
-  githubLink.object.userData = { type: "github" };
+  linkedinLink.onSelected = () => {
+    window.open("https://www.linkedin.com/in/yufeng-li-567a3517a/");
+  };
+  githubLink.onSelected = () => {
+    window.open("https://github.com/derekli19951103");
+  };
 
   createTranslationAnimation({
     object: linkedInPic.object,

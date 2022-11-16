@@ -1,4 +1,4 @@
-import { PLANE_HEIGHT } from "components/Canvas";
+import { PLANE_HEIGHT } from "constant";
 import ThreeDNode from "engine/ThreeDNode";
 import { BoxGeometry, Mesh, MeshStandardMaterial, TextureLoader } from "three";
 import Viewport from "../../engine/Viewport";
@@ -14,6 +14,10 @@ export const addResumeContent = async (viewport: Viewport) => {
   const cube = new Mesh(boxGeo, material);
 
   const node = new ThreeDNode(cube);
+
+  node.onSelected = () => {
+    window.open("/Resume.pdf");
+  };
 
   node.object.position.set(0, PLANE_HEIGHT / 2, 0);
   node.object.userData = { isRotatingCube: true };

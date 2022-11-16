@@ -30,11 +30,7 @@ export default class ThreeDNode {
     this.onRayCasted = params?.onRayCasted;
     this.onSelected = params?.onSelected;
 
-    if (object.geometry.boundingBox) {
-      this.bbox = object.geometry.boundingBox;
-    } else {
-      this.bbox = new Box3().setFromObject(object);
-    }
+    this.bbox = new Box3().setFromObject(object);
 
     this.bbox.getSize(this.size);
   }
@@ -57,6 +53,10 @@ export default class ThreeDNode {
     this.wire.visible = false;
 
     this.object.add(this.wire);
+  }
+
+  update() {
+    this.bbox = this.bbox.setFromObject(this.object);
   }
 
   get isSelected() {

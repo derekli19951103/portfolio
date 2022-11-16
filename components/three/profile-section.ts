@@ -3,7 +3,7 @@ import { createTranslationAnimation } from "../../engine/animations/text-animati
 import { loadFont } from "../../engine/loaders/font-loader";
 import { createWireframeText } from "../../engine/objects/WireframeText";
 import Viewport from "../../engine/Viewport";
-import { PLANE_HEIGHT } from "../Canvas";
+import { PLANE_HEIGHT } from "constant";
 
 export const addProfileText = async (viewport: Viewport) => {
   const font = await loadFont("/fonts/helvetiker_regular.typeface.json");

@@ -8,15 +8,21 @@ export const createBreakingText = (
   font: Font,
   fragmentShader: string,
   vertexShader: string,
-  text: string
+  text: string,
+  params?: {
+    size?: number;
+    height?: number;
+    bevelEnabled?: boolean;
+  }
 ) => {
   let geometry = new TextGeometry(text, {
     font,
-    size: 20,
-    height: 3,
+    size: params?.size || 20,
+    height: params?.height || 3,
     bevelThickness: 1,
     bevelSize: 0.5,
-    bevelEnabled: true,
+    bevelEnabled:
+      params?.bevelEnabled === undefined ? true : params.bevelEnabled,
   });
 
   const center = new Vector3();

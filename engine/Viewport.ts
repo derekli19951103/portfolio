@@ -1,6 +1,10 @@
 import TWEEN, { Easing } from "@tweenjs/tween.js";
 import { addContactContent } from "components/three/contact-section";
-import { addFighterJetGame } from "components/three/fighter-jet";
+import {
+  addFighterJetGame,
+  addGameCountdown,
+  addGameOver,
+} from "components/three/fighter-jet";
 import { addIntroContent } from "components/three/intro-section";
 import { addResumeContent } from "components/three/resume-section";
 import {
@@ -32,7 +36,7 @@ import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass.js";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass.js";
 import { LuminosityShader } from "three/examples/jsm/shaders/LuminosityShader.js";
 import { SobelOperatorShader } from "three/examples/jsm/shaders/SobelOperatorShader.js";
-import { PLANE_HEIGHT } from "../components/Canvas";
+import { PLANE_HEIGHT } from "constant";
 import { addEduContent } from "../components/three/education-section";
 import { addProfileText } from "../components/three/profile-section";
 import { addToolsContent } from "../components/three/tools-section";
@@ -73,6 +77,8 @@ export default class Viewport {
 
   selectedTabIndex?: number;
   displayContent = new Group();
+
+  activeIntervals: number[] = [];
 
   constructor(props: {
     canvas: HTMLCanvasElement;
@@ -142,7 +148,13 @@ export default class Viewport {
 
       //fighter jet
       const jet = this.nodes.find((n) => n.object.userData.isFightJet);
-      jet?.object.position.copy(new Vector3(pos.x, pos.y, pos.z));
+      if (jet) {
+        const size = new Vector3();
+        jet.bbox.getSize(size);
+        if (pos.y >= size.y / 2) {
+          jet?.object.position.copy(new Vector3(pos.x, pos.y, pos.z));
+        }
+      }
     };
 
     canvas.addEventListener("mousemove", (e) => {
@@ -248,23 +260,13 @@ export default class Viewport {
               this.raisingAnimations();
             } else {
               if (this.selectedTabIndex !== nameIndex) {
-                this.removeFromContentGroup();
+                this.clearContentGroup();
 
                 this.switchContent(nameIndex);
               }
             }
 
             this.selectedTabIndex = nameIndex;
-          }
-
-          if (n.object.userData.type === "linkedin") {
-            window.open("https://www.linkedin.com/in/yufeng-li-567a3517a/");
-          }
-          if (n.object.userData.type === "github") {
-            window.open("https://github.com/derekli19951103");
-          }
-          if (n.object.userData.isRotatingCube) {
-            window.open("/Resume.pdf");
           }
         }
       });
@@ -281,7 +283,7 @@ export default class Viewport {
 
         this.selectedTabIndex = undefined;
 
-        this.removeFromContentGroup();
+        this.clearContentGroup();
       }
     };
 
@@ -323,13 +325,22 @@ export default class Viewport {
     this.displayContent.add(...objects);
   }
 
-  removeFromContentGroup() {
+  removeNodeFromContentGroup(node: ThreeDNode) {
+    const idx = this.nodes.findIndex((n) => n.object.id === node.object.id);
+    if (idx > 0) {
+      this.nodes.splice(idx, 1);
+    }
+    this.displayContent.remove(node.object);
+  }
+
+  clearContentGroup() {
     const uuids: string[] = [];
     this.displayContent.traverse((c) => {
       uuids.push(c.uuid);
     });
     this.nodes = this.nodes.filter((n) => !uuids.includes(n.object.uuid));
     this.displayContent.clear();
+    this.clearActiveIntervals();
   }
 
   addPlane(node: ThreeDNode) {
@@ -481,9 +492,19 @@ export default class Viewport {
     });
   }
 
-  switchContent(nameIndex?: number) {
+  addToActiveIntervals(...numbers: number[]) {
+    this.activeIntervals.push(...numbers);
+  }
+
+  clearActiveIntervals() {
+    this.activeIntervals.forEach((ac) => window.clearInterval(ac));
+    this.activeIntervals = [];
+  }
+
+  switchContent(nameIndex?: number | string) {
     this.mouseSpotLight.visible = true;
     this.orbitControls.enableRotate = true;
+    this.clearActiveIntervals();
     switch (nameIndex) {
       case 0:
         addProfileText(this);
@@ -501,7 +522,10 @@ export default class Viewport {
         this.mouseSpotLight.visible = false;
         this.orbitControls.enableRotate = false;
         this.camera.position.copy(this.facingCameraPos);
-        addFighterJetGame(this);
+        addGameCountdown(this);
+        setTimeout(() => {
+          addFighterJetGame(this);
+        }, 3500);
         break;
       case 6:
         this.mouseSpotLight.visible = false;
@@ -511,11 +535,59 @@ export default class Viewport {
         this.mouseSpotLight.visible = false;
         addResumeContent(this);
         break;
+      case "lose":
+        this.mouseSpotLight.visible = false;
+        this.orbitControls.enableRotate = false;
+        this.camera.position.copy(this.facingCameraPos);
+        addGameOver(this);
     }
   }
 
   setMouseSpotLightTarget(object: Object3D) {
     this.mouseSpotLight.target = object;
+  }
+
+  jetGameLogic() {
+    this.nodes.forEach((n) => {
+      if (n.object.userData.isBullet) {
+        this.nodes.forEach((other) => {
+          if (other.object.userData.isWord) {
+            const intersect = n.bbox.intersectsBox(other.bbox);
+            if (intersect) {
+              this.removeNodeFromContentGroup(n);
+              if (
+                other.object.userData.impactCount < other.object.userData.armor
+              ) {
+                other.object.userData.impactCount += 1;
+                (
+                  other.object.material as ShaderMaterial
+                ).uniforms.amplitude.value =
+                  other.object.userData.impactCount /
+                  other.object.userData.armor;
+              } else {
+                this.removeNodeFromContentGroup(other);
+              }
+            }
+          }
+        });
+      }
+      if (n.object.userData.isFightJet) {
+        this.nodes.forEach((other) => {
+          if (other.object.userData.isWord) {
+            const intersect = n.bbox.intersectsBox(other.bbox);
+            if (intersect) {
+              this.clearContentGroup();
+              this.switchContent("lose");
+            }
+          }
+        });
+      }
+    });
+  }
+
+  restartJetGame() {
+    this.clearContentGroup();
+    this.switchContent(5);
   }
 
   render() {
@@ -525,13 +597,8 @@ export default class Viewport {
     TWEEN.update();
     this.water.material.uniforms["time"].value += 1.0 / 60.0;
 
-    this.animateName();
-    this.animateDolphins();
-    this.animteRotatingCube();
-
-    this.orbitControls.update();
-
     this.nodes.forEach((n) => {
+      n.update();
       const intersect = this.raycaster.intersectObject(n.object, true);
       n.setRayCasted(intersect.length > 0);
 
@@ -542,6 +609,13 @@ export default class Viewport {
         }
       }
     });
+
+    this.animateName();
+    this.animateDolphins();
+    this.animteRotatingCube();
+    this.jetGameLogic();
+
+    this.orbitControls.update();
 
     this.composer.render();
     requestAnimationFrame(this.render.bind(this));

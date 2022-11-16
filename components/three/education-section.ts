@@ -11,7 +11,7 @@ import { loadFont } from "../../engine/loaders/font-loader";
 import { createStandardText } from "../../engine/objects/StandardText";
 import ThreeDNode from "../../engine/ThreeDNode";
 import Viewport from "../../engine/Viewport";
-import { PLANE_HEIGHT } from "../Canvas";
+import { PLANE_HEIGHT } from "constant";
 
 export const addEduContent = async (viewport: Viewport) => {
   const geo = new PlaneGeometry(180, 60);

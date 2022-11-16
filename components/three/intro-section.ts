@@ -4,14 +4,14 @@ import { Coord2 } from "types/utils";
 import { createTranslationAnimation } from "../../engine/animations/text-animations";
 import { loadFont } from "../../engine/loaders/font-loader";
 import Viewport from "../../engine/Viewport";
-import { PLANE_HEIGHT, PLANE_WIDTH } from "../Canvas";
+import { PLANE_HEIGHT, PLANE_WIDTH } from "constant";
 
-const paragraph = [
+export const paragraph = [
   "Easygoing & Practical",
   "Cat person",
   "Web Developing",
   "Computer Vision",
-  "Loves to Experiment",
+  "Love to Experiment",
 ];
 
 export const addIntroContent = async (viewport: Viewport) => {
