@@ -119,7 +119,9 @@ export const Canvas = () => {
       //@ts-ignore
       const stats: Stats = new Stats();
 
-      statsRef.current?.appendChild(stats.dom);
+      if (process.env.NODE_ENV === "development") {
+        statsRef.current?.appendChild(stats.dom);
+      }
 
       const viewport = new Viewport({
         canvas: canvasRef.current,
