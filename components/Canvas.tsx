@@ -28,9 +28,8 @@ export const Canvas = () => {
 
   useEffect(() => {
     if (gl) {
-      gl.spotLightHelper.visible = !isTabletOrMobile;
     }
-  }, [isTabletOrMobile, gl]);
+  }, [gl]);
 
   const addName = async (gl: Viewport) => {
     const font = await loadFont("/fonts/helvetiker_regular.typeface.json");

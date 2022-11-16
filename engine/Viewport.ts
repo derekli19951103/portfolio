@@ -1,5 +1,6 @@
 import TWEEN, { Easing } from "@tweenjs/tween.js";
 import { addContactContent } from "components/three/contact-section";
+import { addFighterJetGame } from "components/three/fighter-jet";
 import { addIntroContent } from "components/three/intro-section";
 import { addResumeContent } from "components/three/resume-section";
 import {
@@ -122,11 +123,11 @@ export default class Viewport {
     this.scene.add(this.mouseSpotLight);
     this.mouseSpotLight.position.set(0, 0, mouseLightZHeight);
     this.spotLightHelper = new SpotLightHelper(this.mouseSpotLight, 0x111111);
-    this.scene.add(this.spotLightHelper);
+    // this.scene.add(this.spotLightHelper);
 
-    canvas.addEventListener("mousemove", (e) => {
-      this.pointer.x = (e.clientX / this.width) * 2 - 1;
-      this.pointer.y = -(e.clientY / this.height) * 2 + 1;
+    const onPointerMove = (x: number, y: number) => {
+      this.pointer.x = (x / this.width) * 2 - 1;
+      this.pointer.y = -(y / this.height) * 2 + 1;
 
       const vector = new Vector3(this.pointer.x, this.pointer.y, 0.5);
       vector.unproject(this.camera);
@@ -138,6 +139,20 @@ export default class Viewport {
       this.mouseSpotLight.position.copy(
         new Vector3(pos.x, pos.y, pos.z + mouseLightZHeight)
       );
+
+      //fighter jet
+      const jet = this.nodes.find((n) => n.object.userData.isFightJet);
+      jet?.object.position.copy(new Vector3(pos.x, pos.y, pos.z));
+    };
+
+    canvas.addEventListener("mousemove", (e) => {
+      onPointerMove(e.clientX, e.clientY);
+    });
+
+    canvas.addEventListener("touchmove", (e) => {
+      if (e.touches.length > 0) {
+        onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
     });
 
     this.orbitControls = new OrbitControls(this.camera, canvas);
@@ -467,12 +482,13 @@ export default class Viewport {
   }
 
   switchContent(nameIndex?: number) {
+    this.mouseSpotLight.visible = true;
+    this.orbitControls.enableRotate = true;
     switch (nameIndex) {
       case 0:
         addProfileText(this);
         break;
       case 1:
-        this.mouseSpotLight.visible = true;
         addEduContent(this);
         break;
       case 2:
@@ -480,6 +496,12 @@ export default class Viewport {
         break;
       case 3:
         addToolsContent(this);
+        break;
+      case 5:
+        this.mouseSpotLight.visible = false;
+        this.orbitControls.enableRotate = false;
+        this.camera.position.copy(this.facingCameraPos);
+        addFighterJetGame(this);
         break;
       case 6:
         this.mouseSpotLight.visible = false;
