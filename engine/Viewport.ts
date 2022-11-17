@@ -143,9 +143,7 @@ export default class Viewport {
       const pos = this.camera.position
         .clone()
         .add(dir.multiplyScalar(distance));
-      this.mouseSpotLight.position.copy(
-        new Vector3(pos.x, pos.y, pos.z + mouseLightZHeight)
-      );
+      this.mouseSpotLight.position.set(pos.x, pos.y, pos.z + mouseLightZHeight);
 
       //fighter jet
       const jet = this.nodes.find((n) => n.object.userData.isFightJet);
@@ -153,7 +151,7 @@ export default class Viewport {
         const size = new Vector3();
         jet.bbox.getSize(size);
         if (pos.y >= size.y / 2) {
-          jet?.object.position.copy(new Vector3(pos.x, pos.y, pos.z));
+          jet?.object.position.set(pos.x, pos.y, pos.z);
         }
       }
     };
@@ -163,6 +161,7 @@ export default class Viewport {
     });
 
     canvas.addEventListener("touchmove", (e) => {
+      e.preventDefault();
       if (e.touches.length > 0) {
         onPointerMove(e.touches[0].clientX, e.touches[0].clientY);
       }
@@ -250,6 +249,7 @@ export default class Viewport {
     });
 
     canvas.addEventListener("click", (e) => {
+      e.preventDefault();
       this.nodes.forEach((n) => {
         if (n.isRayCasted) {
           n.setSelected(!n.isSelected);
@@ -288,7 +288,10 @@ export default class Viewport {
       }
     };
 
-    canvas.addEventListener("contextmenu", loweringActions);
+    canvas.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      loweringActions();
+    });
 
     let tapedTwice = false;
 

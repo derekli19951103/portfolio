@@ -15,8 +15,10 @@ export const addResumeContent = async (viewport: Viewport) => {
 
   const node = new ThreeDNode(cube);
 
-  node.onSelected = () => {
-    window.open("/Resume.pdf");
+  node.onSelected = (selected) => {
+    if (selected) {
+      window.open("/Resume.pdf");
+    }
   };
 
   node.object.position.set(0, PLANE_HEIGHT / 2, 0);

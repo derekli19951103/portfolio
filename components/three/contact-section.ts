@@ -51,11 +51,15 @@ export const addContactContent = async (viewport: Viewport) => {
     }
   );
 
-  linkedinLink.onSelected = () => {
-    window.open("https://www.linkedin.com/in/yufeng-li-567a3517a/");
+  linkedinLink.onSelected = (selected) => {
+    if (selected) {
+      window.open("https://www.linkedin.com/in/yufeng-li-567a3517a/");
+    }
   };
-  githubLink.onSelected = () => {
-    window.open("https://github.com/derekli19951103");
+  githubLink.onSelected = (selected) => {
+    if (selected) {
+      window.open("https://github.com/derekli19951103");
+    }
   };
 
   createTranslationAnimation({
