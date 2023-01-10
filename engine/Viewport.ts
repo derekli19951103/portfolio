@@ -12,6 +12,7 @@ import {
   AmbientLight,
   CubeTextureLoader,
   Group,
+  Material,
   Mesh,
   Object3D,
   PerspectiveCamera,
@@ -42,6 +43,7 @@ import { addProfileText } from "../components/three/profile-section";
 import { addToolsContent } from "../components/three/tools-section";
 import { OrbitControls } from "../engine/three/OrbitControls";
 import ThreeDNode from "./ThreeDNode";
+import { TextBufferGeometry } from "three/examples/jsm/geometries/TextGeometry";
 
 export default class Viewport {
   scene: Scene;
@@ -468,13 +470,46 @@ export default class Viewport {
 
   animateName() {
     const time = Date.now() * 0.001;
+    const speed = Math.sin(time);
     this.nodes.forEach((n) => {
       if (n.object.userData.isName) {
+        const label = n.object.children.find(
+          (c) => c.userData.isNameLabelTag
+        ) as Mesh<TextBufferGeometry, Material> | undefined;
         if (n.isRayCasted || n.isSelected) {
           (n.object.material as ShaderMaterial).uniforms.amplitude.value =
-            1.0 + Math.sin(time * 0.5);
+            Math.abs(speed) / 2;
+
+          if (label) {
+            label.material.opacity = Math.abs(speed) / 2;
+          }
         } else {
           (n.object.material as ShaderMaterial).uniforms.amplitude.value = 0;
+          if (label) {
+            label.material.opacity = 0;
+          }
+        }
+      }
+    });
+  }
+
+  animateNameCircularLightUp() {
+    const time = Date.now() * 0.001;
+    const names = this.nodes.filter((n) => n.object.userData.isName);
+    names.forEach((n) => {
+      const index = Math.floor(Date.now() / 2000) % 8;
+      const speed = Math.sin(time);
+
+      const label = n.object.children.find((c) => c.userData.isNameLabelTag) as
+        | Mesh<TextBufferGeometry, Material>
+        | undefined;
+
+      if (index === n.object.userData.nameIndex) {
+        (n.object.material as ShaderMaterial).uniforms.amplitude.value =
+          Math.abs(speed) / 2;
+
+        if (label) {
+          label.material.opacity = Math.abs(speed) / 2;
         }
       }
     });
@@ -630,6 +665,7 @@ export default class Viewport {
     this.animateDolphins();
     this.animteRotatingCube();
     this.jetGameLogic();
+    this.animateNameCircularLightUp();
 
     this.orbitControls.update();
 

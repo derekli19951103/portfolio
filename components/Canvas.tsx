@@ -1,4 +1,5 @@
 import { PLANE_HEIGHT, PLANE_WIDTH } from "constant";
+import { createStandardText } from "engine/objects/StandardText";
 import { TransparentBox } from "engine/objects/TransparentBox";
 import { useEffect, useRef } from "react";
 import { useMediaQuery } from "react-responsive";
@@ -36,11 +37,32 @@ export const Canvas = () => {
 
     const names = [];
     const nameSeg = "YUFENGLI".split("");
+    const labels = [
+      "Myself",
+      "Edu",
+      "Traits",
+      "Techs",
+      "",
+      "Game",
+      "Links",
+      "Resume",
+    ];
     for (let i = 0; i < nameSeg.length; i++) {
       const seg = createBreakingText(font, frag, vert, nameSeg[i]);
       seg.object.userData = { isName: true, nameIndex: i };
-      seg.object.position.set(start + gap * (i > 5 ? i + 1 : i), height, 0);
+
+      const x = start + gap * (i > 5 ? i + 1 : i);
+      const y = height;
+      seg.object.position.set(x, y, 0);
       seg.object.add(TransparentBox(seg));
+
+      const label = createStandardText(font, labels[i], { size: 5 });
+      label.object.position.set(0, 15, 0);
+      //@ts-ignore
+      label.object.material.transparent = true;
+      label.object.userData = { isNameLabelTag: true };
+
+      seg.object.add(label.object);
       names.push(seg);
     }
 
