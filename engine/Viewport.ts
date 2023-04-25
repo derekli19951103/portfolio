@@ -179,12 +179,12 @@ export default class Viewport {
     this.orbitControls.enableDamping = true;
 
     this.scene.background = new CubeTextureLoader().load([
-      "/textures/sky/right.png",
-      "/textures/sky/left.png",
-      "/textures/sky/top.png",
-      "/textures/sky/bottom.png",
-      "/textures/sky/front.png",
-      "/textures/sky/back.png",
+      "/textures/sky/px.png",
+      "/textures/sky/nx.png",
+      "/textures/sky/py.png",
+      "/textures/sky/ny.png",
+      "/textures/sky/pz.png",
+      "/textures/sky/nz.png",
     ]);
 
     const waterGeometry = new PlaneGeometry(10000, 10000);

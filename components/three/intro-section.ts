@@ -5,6 +5,7 @@ import { createTranslationAnimation } from "../../engine/animations/text-animati
 import { loadFont } from "../../engine/loaders/font-loader";
 import Viewport from "../../engine/Viewport";
 import { PLANE_HEIGHT, PLANE_WIDTH } from "constant";
+import { TransparentBox } from "engine/objects/TransparentBox";
 
 export const paragraph = [
   "Easygoing & Practical",
@@ -28,6 +29,7 @@ export const addIntroContent = async (viewport: Viewport) => {
   const nodes = langs.map((s, i) => {
     const { x, y } = s.pos;
     const t = createDupText(font, s.title, { size: 18 });
+    t.object.add(TransparentBox(t));
 
     const xcaliber = x + t.size.x / 2;
 

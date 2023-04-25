@@ -1,6 +1,7 @@
 import TWEEN from "@tweenjs/tween.js";
 import { PLANE_HEIGHT, PLANE_WIDTH } from "constant";
 import { createTranslationAnimation } from "engine/animations/text-animations";
+import { TransparentBox } from "engine/objects/TransparentBox";
 import { createWireframeText } from "engine/objects/WireframeText";
 import ThreeDNode from "engine/ThreeDNode";
 import {
@@ -50,6 +51,8 @@ export const addContactContent = async (viewport: Viewport) => {
       size: 8,
     }
   );
+  linkedinLink.object.add(TransparentBox(linkedinLink));
+  githubLink.object.add(TransparentBox(githubLink));
 
   linkedinLink.onSelected = (selected) => {
     if (selected) {

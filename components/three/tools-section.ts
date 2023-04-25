@@ -6,6 +6,7 @@ import { createStandardText } from "../../engine/objects/StandardText";
 import { getRandomPointInInterval } from "../../engine/utils/math";
 import Viewport from "../../engine/Viewport";
 import { PLANE_HEIGHT } from "constant";
+import { TransparentBox } from "engine/objects/TransparentBox";
 
 export const tools = [
   { title: "React", size: 18, pos: { x: -140, y: PLANE_HEIGHT / 2 } },
@@ -47,6 +48,7 @@ export const addToolsContent = async (viewport: Viewport) => {
   const nodes = tools.map((s) => {
     const { x, y } = s.pos;
     const t = createStandardText(font, s.title, { size: s.size });
+    t.object.add(TransparentBox(t));
     t.calculateWireframe(new Vector3(3, 3, 1));
     t.onRayCasted = (rayCasted) => {
       t.wire!.visible = rayCasted;
