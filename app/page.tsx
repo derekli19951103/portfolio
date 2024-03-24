@@ -2,7 +2,7 @@ import { ViewportsContextProvider } from 'store/viewports'
 import { Canvas } from '../components/Canvas'
 import { Metadata } from 'next'
 
-export const meta: Metadata = {
+export const metadata: Metadata = {
   title: 'Yufeng Li',
   description: 'Yufeng Li Portfolio'
 }
