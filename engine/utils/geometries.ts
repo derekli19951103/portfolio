@@ -1,8 +1,8 @@
-import { Box3, BufferGeometry, Vector3 } from "three";
+import { Box3, BufferGeometry, Vector3 } from 'three'
 
 export const ThickWireframe = (bbox: Box3, offset: Vector3) => {
-  const bboxMin = bbox.min.addScaledVector(offset, -1);
-  const bboxMax = bbox.max.addScaledVector(offset, 1);
+  const bboxMin = bbox.min.addScaledVector(offset, -1)
+  const bboxMax = bbox.max.addScaledVector(offset, 1)
   return new BufferGeometry().setFromPoints([
     //1
     new Vector3(bboxMin.x, bboxMin.y, bboxMin.z),
@@ -37,6 +37,6 @@ export const ThickWireframe = (bbox: Box3, offset: Vector3) => {
     //5
     new Vector3(bboxMax.x, bboxMin.y, bboxMin.z),
     //8
-    new Vector3(bboxMax.x, bboxMax.y, bboxMin.z),
-  ]);
-};
+    new Vector3(bboxMax.x, bboxMax.y, bboxMin.z)
+  ])
+}
