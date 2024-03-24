@@ -1,3 +1,4 @@
+'use client'
 import { PLANE_HEIGHT, PLANE_WIDTH } from 'constant'
 import { createStandardText } from 'engine/objects/StandardText'
 import { TransparentBox } from 'engine/objects/TransparentBox'
