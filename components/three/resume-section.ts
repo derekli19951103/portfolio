@@ -17,7 +17,7 @@ export const addResumeContent = async (viewport: Viewport) => {
 
   node.onSelected = (selected) => {
     if (selected) {
-      window.open('/Resume.pdf')
+      window.open('/resume.html', '_blank')
     }
   }
 

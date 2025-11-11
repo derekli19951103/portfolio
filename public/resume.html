@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Derek Li — Resume</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --fg: #111;
+      --muted: #444;
+      --accent: #0b5fff;
+    }
+    @page { margin: 0.6in; }
+    * { box-sizing: border-box; }
+    html, body { padding: 0; margin: 0; color: var(--fg); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      line-height: 1.3;
+      font-size: 11pt;
+    }
+    .container { max-width: 8.5in; margin: 0 auto; padding: 0.2in 0.1in; }
+    h1, h2, h3 { margin: 0 0 6px; }
+    h1 { font-size: 20pt; letter-spacing: 0.2px; }
+    h2 {
+      font-size: 11pt;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-top: 14px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 4px;
+    }
+    .subtitle { color: var(--muted); margin-top: 2px; margin-bottom: 10px; }
+    .contact { color: var(--muted); font-size: 10.5pt; margin-top: 2px; }
+    .contact a { color: inherit; text-decoration: none; }
+    .role { display: flex; justify-content: space-between; gap: 12px; }
+    .role h3 { font-size: 11.5pt; font-weight: 600; }
+    .role .where { color: var(--muted); font-weight: 500; }
+    .role .when { color: var(--muted); white-space: nowrap; }
+    ul { margin: 6px 0 10px 18px; padding: 0; }
+    li { margin: 3px 0; }
+    .tech { color: var(--muted); font-style: italic; margin-top: 4px; }
+    .skills-list { margin: 6px 0; }
+    .skills-list b { color: #222; }
+    .tagline { margin-top: 8px; font-weight: 600; }
+    .summary { margin-top: 6px; }
+    .compact-list { margin-left: 0; list-style: none; }
+    .compact-list li::before { content: "• "; color: var(--muted); }
+    @media print {
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Derek Li</h1>
+    <div class="contact">Toronto, Canada (Remote-friendly) · <a href="mailto:officials.yufengli@outlook.com">officials.yufengli@outlook.com</a></div>
+    <div class="contact">Portfolio: https://yufengli.vercel.app · Phone: 6479493090</div>
+
+    <div class="tagline">Full-Stack Engineer (6 Years) — SaaS, Cloud-Native Architecture, Scripting & DevOps</div>
+
+    <h2>Summary</h2>
+    <div class="summary">
+      Full‑stack engineer with 6 years of experience building and scaling SaaS platforms and cloud‑native services.
+      End‑to‑end ownership across React/Next.js frontends, Rust/Node.js backends (GraphQL/REST), data modeling, Stripe payments,
+      background processing (Redis/BullMQ, SQS), and IaC on AWS with Terraform. Known for measurable improvements in performance
+      and developer velocity (e.g., reducing campaign scheduling from ~1 hour to ~10 seconds), zero‑downtime migrations, and
+      production‑grade integrations (Cognito, SES/Stripe). Comfortable driving initiatives from problem definition to rollout and observability.
+    </div>
+
+    <h2>Core Skills</h2>
+    <div class="skills-list">
+      <div><b>Languages:</b> TypeScript, JavaScript (ES6+), Rust, Python, SQL</div>
+      <div><b>Frontend:</b> React, Next.js, Angular, Tailwind CSS (Bootstrap → Tailwind refactors)</div>
+      <div><b>Backend:</b> Node.js (Express/Nest patterns), Actix Web (Rust), GraphQL, REST, WebSockets</div>
+      <div><b>Data:</b> PostgreSQL, MySQL, MongoDB, Redis (ElastiCache), data migration scripting</div>
+      <div><b>Cloud & DevOps:</b> AWS (Cognito, CloudFront, ECS/ECR, S3, RDS, ElastiCache, SES, OpenSearch), Terraform (IaC), Docker, GitHub Actions (CI/CD)</div>
+      <div><b>Testing & Quality:</b> Jest (unit/integration), contract testing patterns, test data tooling</div>
+      <div><b>Other:</b> Stripe billing (subscriptions, webhooks, proration/idempotency), message queues (BullMQ/Redis, SQS), background workers, performance optimization</div>
+      <div><b>Media/Automation:</b> ffmpeg pipelines (MP4 → HLS/M3U8, audio+image composition), Puppeteer rendering</div>
+    </div>
+
+    <h2>Professional Experience</h2>
+
+    <div class="role">
+      <div>
+        <h3>Full‑Stack Engineer · <span class="where">LearnFormula (Continuing Professional Development e‑Learning)</span></h3>
+      </div>
+      <div class="when">2023 – Present</div>
+    </div>
+    <ul>
+      <li>Re‑architected email campaign scheduling by moving slow database work to Redis‑backed in‑memory state and managing cache across the calculation period spanning multiple BullMQ background tasks, reducing time to launch from ~1 hour to ~10 seconds per campaign.</li>
+      <li>Set up a Redis (ElastiCache) + BullMQ job infrastructure for background processing (scheduling, media pipelines, render tasks), improving reliability and throughput for long‑running tasks.</li>
+      <li>Expanded and refactored Stripe integration to support additional pricing models and product offerings; hardened webhooks with idempotency and retries to ensure billing accuracy.</li>
+      <li>Unified authentication/authorization by integrating AWS Cognito so web and React Native mobile clients share the same identity provider and token strategy.</li>
+      <li>Executed zero‑downtime database migrations “in flight” to evolve schemas without interrupting live traffic.</li>
+      <li>Led frontend modernization by refactoring legacy Bootstrap UI to Tailwind CSS, improving consistency and design velocity.</li>
+      <li>Built a media processing service leveraging ffmpeg to:
+        <ul>
+          <li>Transcode MP4 to HLS (M3U8) for adaptive streaming.</li>
+          <li>Compose videos from audio tracks + image sequences for course content.</li>
+          <li>Integrate tasks into the background queue for automatic pickup by workers.</li>
+        </ul>
+      </li>
+      <li>Developed a Puppeteer‑based service to convert web pages into images for content operations, integrated into the BullMQ pipeline.</li>
+      <li>Developed a prototype AI‑assisted content pipeline that composes course material from source readings, generates transcripts and TTS voiceovers, and combines audio with auto‑produced demo slides to render videos; orchestrated via background jobs and ffmpeg.</li>
+      <li>Co‑led migration from AWS Elastic Beanstalk to Terraform‑managed infrastructure; codified service configs (e.g., ECS, S3, RDS, Cognito, OpenSearch, CloudFront) to enable reproducible environments and reviewable changes.</li>
+      <li>Contributed to React Native app development, ensuring seamless auth and shared domain logic with the web platform.</li>
+    </ul>
+    <div class="tech">Tech: React, Next.js, Node.js, TypeScript, Redis/ElastiCache, BullMQ, Stripe, AWS (Cognito, SES, CloudFront, ECS, S3, RDS, OpenSearch), Terraform, Docker, ffmpeg, Puppeteer</div>
+
+    <div class="role" style="margin-top:12px;">
+      <div>
+        <h3>Full‑Stack Developer · <span class="where">Spaice (Interior Design SaaS: 3D Web Editor, Quotes & Orders)</span></h3>
+      </div>
+      <div class="when">2020 – 2022</div>
+    </div>
+    <ul>
+      <li>Built browser‑based 3D editing features using Three.js (materials, lighting, transforms), enabling clients to visualize interiors and produce client‑ready proposals in‑app.</li>
+      <li>Developed Rust backend services exposing a GraphQL API for quoting, order lifecycle, and project data; collaborated on schema design to support product growth.</li>
+      <li>Integrated Stripe for subscriptions/checkout/invoicing; implemented secure, idempotent webhook processing to maintain billing integrity.</li>
+      <li>Introduced Amazon SQS to decouple long‑running tasks and orchestrate cross‑service work; added gRPC calls to internal services to standardize contracts and reduce coupling.</li>
+      <li>Integrated Sanity.io CMS to manage marketing and catalog content, empowering non‑technical teams to publish without engineering involvement.</li>
+      <li>Delivered customer/admin web UIs (React/Next.js + GraphQL) for order management, client project tracking, and billing visibility.</li>
+      <li>Managed CI/CD via GitHub Actions (build/test/deploy pipelines), reducing manual deploy friction and improving release cadence.</li>
+    </ul>
+    <div class="tech">Tech: Three.js, React/Next.js, Rust (Actix Web), GraphQL, Stripe, Amazon SQS, gRPC, Sanity.io, GitHub Actions, Docker, AWS</div>
+
+    <h2>Education</h2>
+    <ul class="compact-list">
+      <li>University of Toronto — Honours Bachelor of Science in Computer Science (2014 – 2019)</li>
+    </ul>
+  </div>
+</body>
+</html>
