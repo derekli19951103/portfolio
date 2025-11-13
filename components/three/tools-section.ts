@@ -10,33 +10,33 @@ import { TransparentBox } from 'engine/objects/TransparentBox'
 
 export const tools = [
   { title: 'React', size: 18, pos: { x: -140, y: PLANE_HEIGHT / 2 } },
-  { title: 'Three.js', size: 12, pos: { x: -140, y: PLANE_HEIGHT / 2 - 30 } },
-  { title: 'Mobx', size: 12, pos: { x: -140, y: PLANE_HEIGHT / 2 - 60 } },
-  { title: 'Next.js', size: 12, pos: { x: -140, y: PLANE_HEIGHT / 2 + 30 } },
-  { title: 'GraphQL', size: 12, pos: { x: -140, y: PLANE_HEIGHT / 2 + 60 } },
+  { title: 'Next.js', size: 12, pos: { x: -140, y: PLANE_HEIGHT / 2 - 30 } },
+  { title: 'Three.js', size: 12, pos: { x: -140, y: PLANE_HEIGHT / 2 - 60 } },
+  { title: 'Angular', size: 12, pos: { x: -140, y: PLANE_HEIGHT / 2 + 30 } },
+  { title: 'Typescript', size: 12, pos: { x: -140, y: PLANE_HEIGHT / 2 + 60 } },
 
-  { title: 'Angular', size: 18, pos: { x: -50, y: PLANE_HEIGHT / 2 } },
-  { title: 'Rxjs', size: 12, pos: { x: -50, y: PLANE_HEIGHT / 2 - 30 } },
-  { title: 'MongoDB', size: 12, pos: { x: -50, y: PLANE_HEIGHT / 2 - 60 } },
-  { title: 'SSR', size: 12, pos: { x: -50, y: PLANE_HEIGHT / 2 + 30 } },
-  { title: 'AWS', size: 12, pos: { x: -50, y: PLANE_HEIGHT / 2 + 60 } },
+  { title: 'Rust', size: 18, pos: { x: -50, y: PLANE_HEIGHT / 2 } },
+  { title: 'Actix Web', size: 12, pos: { x: -50, y: PLANE_HEIGHT / 2 - 30 } },
+  { title: 'Node.js', size: 12, pos: { x: -50, y: PLANE_HEIGHT / 2 - 60 } },
+  { title: 'Diesel', size: 12, pos: { x: -50, y: PLANE_HEIGHT / 2 + 30 } },
+  { title: 'Prisma', size: 12, pos: { x: -50, y: PLANE_HEIGHT / 2 + 60 } },
 
-  { title: 'Rust', size: 18, pos: { x: 50, y: PLANE_HEIGHT / 2 } },
-  { title: 'PostgreSQL', size: 12, pos: { x: 50, y: PLANE_HEIGHT / 2 - 30 } },
-  { title: 'Diesel', size: 12, pos: { x: 50, y: PLANE_HEIGHT / 2 - 60 } },
+  { title: 'Docker', size: 18, pos: { x: 50, y: PLANE_HEIGHT / 2 } },
+  { title: 'AWS', size: 12, pos: { x: 50, y: PLANE_HEIGHT / 2 - 30 } },
+  { title: 'Terraform', size: 12, pos: { x: 50, y: PLANE_HEIGHT / 2 - 60 } },
   {
-    title: 'Async-graphql',
+    title: 'Github Action',
     size: 12,
     pos: { x: 50, y: PLANE_HEIGHT / 2 + 30 }
   },
-  { title: 'GRPC', size: 12, pos: { x: 50, y: PLANE_HEIGHT / 2 + 60 } },
+  { title: 'Kubernetes', size: 12, pos: { x: 50, y: PLANE_HEIGHT / 2 + 60 } },
 
-  { title: 'Node.js', size: 12, pos: { x: 150, y: PLANE_HEIGHT / 2 } },
-  { title: 'Python', size: 12, pos: { x: 150, y: PLANE_HEIGHT / 2 - 30 } },
-  { title: 'Java', size: 12, pos: { x: 150, y: PLANE_HEIGHT / 2 - 60 } },
-  { title: 'Docker', size: 12, pos: { x: 150, y: PLANE_HEIGHT / 2 + 30 } },
+  { title: 'MySQL', size: 12, pos: { x: 150, y: PLANE_HEIGHT / 2 } },
+  { title: 'PostgreSQL', size: 12, pos: { x: 150, y: PLANE_HEIGHT / 2 - 30 } },
+  { title: 'Redis', size: 12, pos: { x: 150, y: PLANE_HEIGHT / 2 - 60 } },
+  { title: 'Stripe', size: 12, pos: { x: 150, y: PLANE_HEIGHT / 2 + 30 } },
   {
-    title: 'Kubernetes',
+    title: 'gRPC',
     size: 12,
     pos: { x: 150, y: PLANE_HEIGHT / 2 + 60 }
   }
