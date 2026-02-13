@@ -1,4 +1,4 @@
-import { Viewport } from 'next'
+import type { Viewport } from 'next'
 import { ReactNode } from 'react'
 import '../styles/globals.css'
 

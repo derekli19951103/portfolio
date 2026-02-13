@@ -13,7 +13,6 @@ import ThreeDNode from '../engine/ThreeDNode'
 import { getRandomPointInInterval } from '../engine/utils/math'
 import Viewport from '../engine/Viewport'
 import { useViewports } from '../store/viewports'
-import { HintOrientation } from './HintOrientation'
 
 export const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -27,14 +26,15 @@ export const Canvas = () => {
   const isTabletOrMobile = useMediaQuery({ query: '(max-width: 1224px)' })
   const isPortrait = useMediaQuery({ query: '(orientation: portrait)' })
 
-  const addName = async (gl: Viewport) => {
+  const addName = async (gl: Viewport, mobilePortrait: boolean) => {
     const font = await loadFont('/fonts/helvetiker_regular.typeface.json')
     const frag = await (await fetch('/shaders/frag.glsl')).text()
     const vert = await (await fetch('/shaders/vert.glsl')).text()
 
     const height = 15
-    const start = -55
-    const gap = 20
+    const start = mobilePortrait ? -40 : -55
+    const gap = mobilePortrait ? 15 : 20
+    const nameScale = mobilePortrait ? 0.7 : 1
 
     const names = []
     const nameSeg = 'YUFENGLI'.split('')
@@ -55,6 +55,7 @@ export const Canvas = () => {
       const x = start + gap * (i > 5 ? i + 1 : i)
       const y = height
       seg.object.position.set(x, y, 0)
+      seg.object.scale.set(nameScale, nameScale, nameScale)
       seg.object.add(TransparentBox(seg))
 
       const label = createStandardText(font, labels[i], { size: 5 })
@@ -94,7 +95,7 @@ export const Canvas = () => {
     const dolphin = await loadObj('/models/dolphin.obj')
     mesh.add(dolphin)
 
-    mesh.scale.set(0.1, 0.1, 0.1)
+    mesh.scale.set(0.2, 0.2, 0.2)
 
     const nodes = []
 
@@ -153,7 +154,14 @@ export const Canvas = () => {
 
       viewport.render()
 
-      addName(viewport)
+      const mobilePortrait = isTabletOrMobile && isPortrait
+      if (mobilePortrait) {
+        viewport.originalCameraPos.set(0, 30, 340)
+        viewport.facingCameraPos.set(0, PLANE_HEIGHT / 2, 280)
+        viewport.camera.position.copy(viewport.originalCameraPos)
+      }
+
+      addName(viewport, mobilePortrait)
       addPlane(viewport)
 
       addDolphins(viewport)
@@ -188,11 +196,8 @@ export const Canvas = () => {
         <nav style={{ position: 'absolute' }}>
           <div ref={statsRef} className="statsContainer" />
         </nav>
-        {isTabletOrMobile && isPortrait ? (
-          <HintOrientation />
-        ) : (
-          <canvas ref={canvasRef} tabIndex={1} />
-        )}
+
+        <canvas ref={canvasRef} tabIndex={1} />
       </div>
     </>
   )

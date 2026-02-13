@@ -1,4 +1,4 @@
-import TWEEN from '@tweenjs/tween.js'
+import { Easing } from '@tweenjs/tween.js'
 import { createTranslationAnimation } from '../../engine/animations/text-animations'
 import { loadFont } from '../../engine/loaders/font-loader'
 import { createWireframeText } from '../../engine/objects/WireframeText'
@@ -22,7 +22,8 @@ export const addProfileText = async (viewport: Viewport) => {
       z: 0
     },
     end: { x: 0, y: PLANE_HEIGHT / 2 + 20, z: 0 },
-    easing: TWEEN.Easing.Quadratic.InOut
+    easing: Easing.Quadratic.InOut,
+    group: viewport.tweenGroup
   }).start()
 
   createTranslationAnimation({
@@ -33,7 +34,8 @@ export const addProfileText = async (viewport: Viewport) => {
       z: 0
     },
     end: { x: 0, y: PLANE_HEIGHT / 4 + 20, z: 0 },
-    easing: TWEEN.Easing.Quadratic.InOut
+    easing: Easing.Quadratic.InOut,
+    group: viewport.tweenGroup
   }).start()
 
   viewport.addToContentGroup(t1, t2)

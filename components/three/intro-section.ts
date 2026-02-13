@@ -1,4 +1,4 @@
-import TWEEN from '@tweenjs/tween.js'
+import { Easing } from '@tweenjs/tween.js'
 import { createDupText } from 'engine/objects/DupText'
 import { Coord2 } from 'types/utils'
 import { createTranslationAnimation } from '../../engine/animations/text-animations'
@@ -28,7 +28,7 @@ export const addIntroContent = async (viewport: Viewport) => {
 
   const nodes = langs.map((s, i) => {
     const { x, y } = s.pos
-    const t = createDupText(font, s.title, { size: 18 })
+    const t = createDupText(font, s.title, { size: 18 }, viewport.tweenGroup)
     t.object.add(TransparentBox(t))
 
     const xcaliber = x + t.size.x / 2
@@ -41,7 +41,8 @@ export const addIntroContent = async (viewport: Viewport) => {
         z: t.object.position.z
       },
       end: { x: xcaliber, y: y, z: t.object.position.z },
-      easing: TWEEN.Easing.Linear.None
+      easing: Easing.Linear.None,
+      group: viewport.tweenGroup
     }).start()
 
     return t

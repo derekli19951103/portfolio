@@ -1,4 +1,4 @@
-import TWEEN from '@tweenjs/tween.js'
+import { Easing } from '@tweenjs/tween.js'
 import { Vector3 } from 'three'
 import { createTranslationAnimation } from '../../engine/animations/text-animations'
 import { loadFont } from '../../engine/loaders/font-loader'
@@ -61,8 +61,9 @@ export const addToolsContent = async (viewport: Viewport) => {
         z: 200
       },
       end: { x: x, y: y, z: 0 },
-      easing: TWEEN.Easing.Linear.None,
-      duration: getRandomPointInInterval(500, 800)
+      easing: Easing.Linear.None,
+      duration: getRandomPointInInterval(500, 800),
+      group: viewport.tweenGroup
     }).start()
 
     return t

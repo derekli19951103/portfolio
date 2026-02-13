@@ -1,29 +1,41 @@
-import TWEEN, { Easing } from '@tweenjs/tween.js'
+import { Tween, Easing, Group as TweenGroup } from '@tweenjs/tween.js'
 import { addContactContent } from 'components/three/contact-section'
 import {
   addFighterJetGame,
   addGameCountdown,
-  addGameOver
+  addGameOver,
+  spawnExplosion
 } from 'components/three/fighter-jet'
 import { addIntroContent } from 'components/three/intro-section'
 import { addResumeContent } from 'components/three/resume-section'
 import {
   ACESFilmicToneMapping,
+  AdditiveBlending,
   AmbientLight,
+  BufferAttribute,
+  BufferGeometry,
+  CanvasTexture,
   CubeTextureLoader,
+  ExtrudeGeometry,
+  Float32BufferAttribute,
   Group,
   Material,
   Mesh,
+  MeshBasicMaterial,
+  DoubleSide,
   Object3D,
   PerspectiveCamera,
   PlaneGeometry,
+  Points,
+  PointsMaterial,
+  RingGeometry,
   Raycaster,
   RepeatWrapping,
   Scene,
   ShaderMaterial,
   SpotLight,
   SpotLightHelper,
-  sRGBEncoding,
+  SRGBColorSpace,
   TextureLoader,
   Vector2,
   Vector3,
@@ -35,22 +47,25 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
+import { Line2 } from 'three/examples/jsm/lines/Line2.js'
+import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js'
+import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js'
 import { LuminosityShader } from 'three/examples/jsm/shaders/LuminosityShader.js'
 import { SobelOperatorShader } from 'three/examples/jsm/shaders/SobelOperatorShader.js'
-import { PLANE_HEIGHT } from 'constant'
+import { PLANE_HEIGHT, PLANE_WIDTH } from 'constant'
 import { addEduContent } from '../components/three/education-section'
 import { addProfileText } from '../components/three/profile-section'
 import { addToolsContent } from '../components/three/tools-section'
 import { OrbitControls } from '../engine/three/OrbitControls'
 import ThreeDNode from './ThreeDNode'
-import { TextBufferGeometry } from 'three/examples/jsm/geometries/TextGeometry'
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry'
 
 export default class Viewport {
   scene: Scene
   renderer: WebGLRenderer
   camera: PerspectiveCamera
 
-  originalCameraPos = new Vector3(-70, 12, 120)
+  originalCameraPos = new Vector3(-70, 30, 250)
   facingCameraPos = new Vector3(0, PLANE_HEIGHT / 2, 220)
 
   water: Water
@@ -59,11 +74,18 @@ export default class Viewport {
   effectSobel: ShaderPass
 
   nodes: ThreeDNode[] = []
+  rain: Points
+  ripples: { mesh: Mesh; age: number }[] = []
 
   orbitControls: OrbitControls
 
   raycaster: Raycaster = new Raycaster()
   pointer: Vector2 = new Vector2()
+  mouseWorldPos: Vector3 = new Vector3()
+  lightTrail: Line2
+  trailPositions: number[] = []
+  trailColors: number[] = []
+  trailLength: number = 60
   mouseSpotLight: SpotLight
   spotLightHelper: SpotLightHelper
 
@@ -79,6 +101,8 @@ export default class Viewport {
 
   selectedTabIndex?: number
   displayContent = new Group()
+
+  tweenGroup: TweenGroup = new TweenGroup()
 
   activeIntervals: number[] = []
   activeTimeouts: number[] = []
@@ -101,7 +125,7 @@ export default class Viewport {
 
     this.scene.add(this.displayContent)
 
-    this.renderer.outputEncoding = sRGBEncoding
+    this.renderer.outputColorSpace = SRGBColorSpace
     this.renderer.setPixelRatio(window.devicePixelRatio)
     this.renderer.toneMapping = ACESFilmicToneMapping
 
@@ -119,16 +143,11 @@ export default class Viewport {
 
     this.scene.add(this.camera)
 
-    const ambientLight = new AmbientLight(0xcccccc, 0.4)
+    const ambientLight = new AmbientLight(0xcccccc, 0.13)
     this.scene.add(ambientLight)
 
     const mouseLightZHeight = 30
-    this.mouseSpotLight = new SpotLight(
-      0xffffff,
-      5,
-      mouseLightZHeight + 10,
-      Math.PI / 2
-    )
+    this.mouseSpotLight = new SpotLight(0xffffff, 50, 500, Math.PI / 2, 0, 1)
     this.scene.add(this.mouseSpotLight)
     this.mouseSpotLight.position.set(0, 0, mouseLightZHeight)
     this.spotLightHelper = new SpotLightHelper(this.mouseSpotLight, 0x111111)
@@ -144,6 +163,8 @@ export default class Viewport {
       const distance = -this.camera.position.z / dir.z
       const pos = this.camera.position.clone().add(dir.multiplyScalar(distance))
       this.mouseSpotLight.position.set(pos.x, pos.y, pos.z + mouseLightZHeight)
+      this.mouseSpotLight.target.position.set(pos.x, pos.y, pos.z)
+      this.mouseWorldPos.set(pos.x, pos.y, pos.z)
 
       //fighter jet
       const jet = this.nodes.find((n) => n.object.userData.isFightJet)
@@ -170,7 +191,7 @@ export default class Viewport {
     this.orbitControls = new OrbitControls(this.camera, canvas)
     this.orbitControls.listenToKeyEvents(canvas)
     this.orbitControls.maxPolarAngle = Math.PI * 0.495
-    this.orbitControls.minDistance = 40.0
+    this.orbitControls.minDistance = 80.0
     this.orbitControls.maxDistance = 350
     this.orbitControls.enablePan = false
     this.orbitControls.enableRotate = true
@@ -185,7 +206,7 @@ export default class Viewport {
       '/textures/sky/nz.png'
     ])
 
-    const waterGeometry = new PlaneGeometry(10000, 10000)
+    const waterGeometry = new PlaneGeometry(10000, 10000, 100, 100)
 
     this.water = new Water(waterGeometry, {
       textureWidth: 512,
@@ -207,6 +228,62 @@ export default class Viewport {
 
     this.scene.add(this.water)
 
+    // Snow particles
+    const snowCount = 500
+    const snowGeo = new BufferGeometry()
+    const snowPositions = new Float32Array(snowCount * 3)
+    const snowVelocities = new Float32Array(snowCount)
+    const snowDrift = new Float32Array(snowCount * 2) // x and z drift phase
+    for (let i = 0; i < snowCount; i++) {
+      snowPositions[i * 3] = (Math.random() - 0.5) * 1000
+      snowPositions[i * 3 + 1] = Math.random() * 400
+      snowPositions[i * 3 + 2] = (Math.random() - 0.5) * 1000
+      snowVelocities[i] = 0.3 + Math.random() * 0.5
+      snowDrift[i * 2] = Math.random() * Math.PI * 2
+      snowDrift[i * 2 + 1] = Math.random() * Math.PI * 2
+    }
+    snowGeo.setAttribute(
+      'position',
+      new Float32BufferAttribute(snowPositions, 3)
+    )
+    snowGeo.userData.velocities = snowVelocities
+    snowGeo.userData.drift = snowDrift
+    this.rain = new Points(
+      snowGeo,
+      new PointsMaterial({
+        color: 0xffffff,
+        size: 0.4,
+        transparent: true,
+        opacity: 0.8
+      })
+    )
+    this.rain.layers.set(1)
+    this.scene.add(this.rain)
+
+    this.camera.layers.enable(1)
+
+    // Cursor light trail (Line2 with per-vertex color for fade)
+    for (let i = 0; i < this.trailLength; i++) {
+      this.trailPositions.push(0, -9999, 0)
+      const t = i / (this.trailLength - 1)
+      this.trailColors.push(1 - t, 1 - t * 0.4, 1)
+    }
+    const trailLineGeo = new LineGeometry()
+    trailLineGeo.setPositions(this.trailPositions)
+    trailLineGeo.setColors(this.trailColors)
+    const trailLineMat = new LineMaterial({
+      linewidth: 4,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.9,
+      depthWrite: false,
+      blending: AdditiveBlending
+    })
+    trailLineMat.resolution.set(this.width, this.height)
+    this.lightTrail = new Line2(trailLineGeo, trailLineMat)
+    this.lightTrail.layers.set(1)
+    this.scene.add(this.lightTrail)
+
     this.composer = new EffectComposer(this.renderer)
     const renderPass = new RenderPass(this.scene, this.camera)
 
@@ -220,9 +297,9 @@ export default class Viewport {
 
     const bloomPass = new UnrealBloomPass(
       new Vector2(this.width, this.height),
-      1,
-      1,
-      0.4
+      0.075,
+      0.15,
+      0.92
     )
 
     this.composer.addPass(renderPass)
@@ -285,6 +362,8 @@ export default class Viewport {
         this.selectedTabIndex = undefined
 
         this.clearContentGroup()
+        this.lightTrail.visible = true
+        this.mouseSpotLight.visible = true
       }
     }
 
@@ -365,7 +444,7 @@ export default class Viewport {
         }
       })
 
-      new TWEEN.Tween({ height: planeHeight / 2 })
+      new Tween({ height: planeHeight / 2 }, this.tweenGroup)
         .to({ height: -planeHeight / 2 - 0.1 })
         .easing(Easing.Linear.None)
         .onUpdate(({ height }, elapsed) => {
@@ -421,7 +500,7 @@ export default class Viewport {
         }
       })
 
-      new TWEEN.Tween({ height: -planeHeight / 2 - 1 })
+      new Tween({ height: -planeHeight / 2 - 1 }, this.tweenGroup)
         .to({ height: planeHeight / 2 })
         .easing(Easing.Linear.None)
         .onUpdate(({ height }, elapsed) => {
@@ -473,7 +552,7 @@ export default class Viewport {
       if (n.object.userData.isName) {
         const label = n.object.children.find(
           (c) => c.userData.isNameLabelTag
-        ) as Mesh<TextBufferGeometry, Material> | undefined
+        ) as Mesh<TextGeometry, Material> | undefined
         if (n.isRayCasted || n.isSelected) {
           ;(n.object.material as ShaderMaterial).uniforms.amplitude.value =
             Math.abs(speed) / 2
@@ -499,7 +578,7 @@ export default class Viewport {
       const speed = Math.sin(time)
 
       const label = n.object.children.find((c) => c.userData.isNameLabelTag) as
-        | Mesh<TextBufferGeometry, Material>
+        | Mesh<TextGeometry, Material>
         | undefined
 
       if (index === n.object.userData.nameIndex) {
@@ -530,6 +609,110 @@ export default class Viewport {
     })
   }
 
+  animateWaves() {
+    const time = Date.now() * 0.001
+    const geometry = (this.water as unknown as Mesh).geometry
+    const position = geometry.getAttribute('position')
+    for (let i = 0; i < position.count; i++) {
+      const x = position.getX(i)
+      const y = position.getY(i)
+      const z =
+        Math.sin(x * 0.01 + time * 0.8) * 4 +
+        Math.sin(y * 0.015 + time * 1.2) * 3 +
+        Math.cos((x + y) * 0.008 + time * 0.5) * 2
+      position.setZ(i, z)
+    }
+    position.needsUpdate = true
+    geometry.computeVertexNormals()
+  }
+
+  animateSnow() {
+    const time = Date.now() * 0.001
+    const geo = this.rain.geometry
+    const positions = geo.getAttribute('position') as BufferAttribute
+    const velocities = geo.userData.velocities as Float32Array
+    const drift = geo.userData.drift as Float32Array
+    for (let i = 0; i < positions.count; i++) {
+      let y = positions.getY(i)
+      y -= velocities[i]
+      if (y < 0) {
+        // Spawn ripple at water surface
+        const x = positions.getX(i)
+        const z = positions.getZ(i)
+        this.spawnRipple(x, z)
+        y = 400
+        positions.setX(i, (Math.random() - 0.5) * 1000)
+        positions.setZ(i, (Math.random() - 0.5) * 1000)
+      }
+      // Gentle random drift on X and Z
+      const dx = Math.sin(time * 0.5 + drift[i * 2]) * 0.3
+      const dz = Math.cos(time * 0.4 + drift[i * 2 + 1]) * 0.3
+      positions.setX(i, positions.getX(i) + dx)
+      positions.setZ(i, positions.getZ(i) + dz)
+      positions.setY(i, y)
+    }
+    positions.needsUpdate = true
+  }
+
+  spawnRipple(x: number, z: number) {
+    const ring = new Mesh(
+      new RingGeometry(0.5, 1, 16),
+      new MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.4,
+        side: DoubleSide
+      })
+    )
+    ring.rotation.x = -Math.PI / 2
+    ring.position.set(x, 0.5, z)
+    this.scene.add(ring)
+    this.ripples.push({ mesh: ring, age: 0 })
+  }
+
+  animateRipples() {
+    for (let i = this.ripples.length - 1; i >= 0; i--) {
+      const ripple = this.ripples[i]
+      ripple.age += 1
+      const scale = 1 + ripple.age * 0.5
+      ripple.mesh.scale.set(scale, scale, scale)
+      const mat = ripple.mesh.material as MeshBasicMaterial
+      mat.opacity = 0.4 * (1 - ripple.age / 30)
+      if (ripple.age >= 30) {
+        this.scene.remove(ripple.mesh)
+        mat.dispose()
+        ripple.mesh.geometry.dispose()
+        this.ripples.splice(i, 1)
+      }
+    }
+  }
+
+  animateLightTrail() {
+    // Shift all positions back by one slot (tail falls off)
+    for (let i = this.trailLength - 1; i > 0; i--) {
+      this.trailPositions[i * 3] = this.trailPositions[(i - 1) * 3]
+      this.trailPositions[i * 3 + 1] = this.trailPositions[(i - 1) * 3 + 1]
+      this.trailPositions[i * 3 + 2] = this.trailPositions[(i - 1) * 3 + 2]
+    }
+    // Head = current cursor
+    this.trailPositions[0] = this.mouseWorldPos.x
+    this.trailPositions[1] = this.mouseWorldPos.y
+    this.trailPositions[2] = this.mouseWorldPos.z + 1
+
+    // Update colors: bright at head, fading to nothing at tail
+    for (let i = 0; i < this.trailLength; i++) {
+      const t = i / (this.trailLength - 1)
+      const fade = 1 - t
+      this.trailColors[i * 3] = fade * fade          // R: white → dark
+      this.trailColors[i * 3 + 1] = fade * 0.8 + 0.2 * fade * fade  // G: bright → dim
+      this.trailColors[i * 3 + 2] = fade              // B: stays longer
+    }
+
+    const geo = this.lightTrail.geometry as LineGeometry
+    geo.setPositions(this.trailPositions)
+    geo.setColors(this.trailColors)
+  }
+
   addToActiveIntervals(...numbers: number[]) {
     this.activeIntervals.push(...numbers)
   }
@@ -551,6 +734,7 @@ export default class Viewport {
   switchContent(nameIndex?: number | string) {
     this.mouseSpotLight.visible = true
     this.orbitControls.enableRotate = true
+    this.lightTrail.visible = true
     this.clearActiveIntervals()
     switch (nameIndex) {
       case 0:
@@ -568,6 +752,7 @@ export default class Viewport {
       case 5:
         this.mouseSpotLight.visible = false
         this.orbitControls.enableRotate = false
+        this.lightTrail.visible = false
         this.camera.position.copy(this.facingCameraPos)
         addGameCountdown(this)
         this.addToActiveTimeouts(
@@ -587,22 +772,35 @@ export default class Viewport {
       case 'lose':
         this.mouseSpotLight.visible = false
         this.orbitControls.enableRotate = false
+        this.lightTrail.visible = false
         this.camera.position.copy(this.facingCameraPos)
         addGameOver(this)
     }
   }
 
-  setMouseSpotLightTarget(object: Object3D) {
-    this.mouseSpotLight.target = object
+  setMouseSpotLightTarget(_object: Object3D) {
+    // Target follows mouse position via onPointerMove, no reassignment needed
   }
 
   jetGameLogic() {
+    const time = Date.now() * 0.001
+
+    // Zigzag word animation
+    this.nodes.forEach((n) => {
+      if (n.object.userData.isWord && n.object.userData.isZigzag) {
+        const { originalX, zigzagSpeed, zigzagAmplitude } = n.object.userData
+        n.object.position.x =
+          Math.sin(time * zigzagSpeed) * zigzagAmplitude + originalX
+      }
+    })
+
     this.nodes.forEach((n) => {
       if (n.object.userData.isBullet) {
         this.nodes.forEach((other) => {
           if (other.object.userData.isWord) {
             const intersect = n.bbox.intersectsBox(other.bbox)
             if (intersect) {
+              const hitPos = n.object.position.clone()
               this.removeNodeFromContentGroup(n)
               if (
                 other.object.userData.impactCount < other.object.userData.armor
@@ -613,20 +811,219 @@ export default class Viewport {
                 ).uniforms.amplitude.value =
                   other.object.userData.impactCount /
                   other.object.userData.armor
+                // Spark + scale punch + shake on non-lethal hit
+                spawnExplosion(this, hitPos)
+                const origScale = other.object.scale.clone()
+                const origPos = other.object.position.clone()
+                new Tween({ s: 1 }, this.tweenGroup)
+                  .to({ s: 1.5 }, 80)
+                  .easing(Easing.Quadratic.Out)
+                  .onUpdate(({ s }) => {
+                    other.object.scale.set(
+                      origScale.x * s,
+                      origScale.y * s,
+                      origScale.z * s
+                    )
+                  })
+                  .onComplete(() => {
+                    new Tween({ s: 1.5 }, this.tweenGroup)
+                      .to({ s: 1 }, 120)
+                      .easing(Easing.Bounce.Out)
+                      .onUpdate(({ s }) => {
+                        other.object.scale.set(
+                          origScale.x * s,
+                          origScale.y * s,
+                          origScale.z * s
+                        )
+                      })
+                      .start()
+                  })
+                  .start()
+                // Shake
+                let shakeCount = 0
+                const shakeInterval = window.setInterval(() => {
+                  other.object.position.x =
+                    origPos.x + (Math.random() - 0.5) * 8
+                  other.object.position.y =
+                    origPos.y + (Math.random() - 0.5) * 4
+                  shakeCount++
+                  if (shakeCount >= 6) {
+                    window.clearInterval(shakeInterval)
+                    other.object.position.x = origPos.x
+                    other.object.position.y = origPos.y
+                  }
+                }, 30)
               } else {
-                this.removeNodeFromContentGroup(other)
+                // Lethal hit — drift away on z axis then explode
+                other.object.userData.isWord = false
+                // Increment kill counter
+                const jet = this.nodes.find(
+                  (j) => j.object.userData.isFightJet
+                )
+                if (jet) {
+                  jet.object.userData.kills =
+                    (jet.object.userData.kills as number) + 1
+                  const hud = this.nodes.find(
+                    (h) => h.object.userData.isKillsHud
+                  )
+                  if (hud) {
+                    const child = hud.object.children[0] as Mesh<TextGeometry>
+                    if (child && child.geometry) {
+                      const params = child.geometry.parameters
+                      if (params && params.options && params.options.font) {
+                        child.geometry.dispose()
+                        child.geometry = new TextGeometry(
+                          `Defeated: ${jet.object.userData.kills}`,
+                          { ...params.options, font: params.options.font }
+                        )
+                      }
+                    }
+                  }
+                }
+                const deathPos = other.object.position.clone()
+                spawnExplosion(this, deathPos)
+                new Tween({ z: deathPos.z, s: 1 }, this.tweenGroup)
+                  .to({ z: deathPos.z - 200, s: 0.01 }, 500)
+                  .easing(Easing.Quadratic.In)
+                  .onUpdate(({ z, s }) => {
+                    other.object.position.z = z
+                    other.object.scale.setScalar(s)
+                  })
+                  .onComplete(() => {
+                    spawnExplosion(this, deathPos)
+                    this.removeNodeFromContentGroup(other)
+                  })
+                  .start()
               }
             }
           }
         })
       }
       if (n.object.userData.isFightJet) {
+        // Animate aura ring
+        const aura = n.object.children.find((c) => c.userData.isAura) as
+          | Mesh
+          | undefined
+        if (aura) {
+          aura.visible = n.object.userData.immune as boolean
+          if (aura.visible) {
+            aura.rotation.z += 0.05
+            const pulse = 0.3 + Math.abs(Math.sin(Date.now() * 0.005)) * 0.4
+            ;(aura.material as MeshBasicMaterial).opacity = pulse
+          }
+        }
+
+        // Jet-word collision: decrement lives (skip if immune)
         this.nodes.forEach((other) => {
           if (other.object.userData.isWord) {
             const intersect = n.bbox.intersectsBox(other.bbox)
             if (intersect) {
-              this.clearContentGroup()
-              this.switchContent('lose')
+              if (n.object.userData.immune) {
+                // Immune — destroy word without damage
+                this.removeNodeFromContentGroup(other)
+                return
+              }
+
+              this.removeNodeFromContentGroup(other)
+              n.object.userData.lives -= 1
+
+              // Remove one heart from HUD
+              const lives = n.object.userData.lives as number
+              const heart = this.nodes.find(
+                (h) =>
+                  h.object.userData.isLifeHeart &&
+                  h.object.userData.heartIndex === lives
+              )
+              if (heart) {
+                this.removeNodeFromContentGroup(heart)
+              }
+
+              // Hit feedback: explosion particles + flash
+              spawnExplosion(this, n.object.position.clone())
+              n.object.visible = false
+              let flashCount = 0
+              const flashInterval = window.setInterval(() => {
+                n.object.visible = !n.object.visible
+                flashCount++
+                if (flashCount >= 6) {
+                  window.clearInterval(flashInterval)
+                  n.object.visible = true
+                }
+              }, 80)
+              this.addToActiveIntervals(flashInterval)
+
+              // 1 second immunity after hit
+              n.object.userData.immune = true
+              const immuneTimeout = window.setTimeout(() => {
+                n.object.userData.immune = false
+              }, 1000)
+              this.addToActiveTimeouts(immuneTimeout)
+
+              if (n.object.userData.lives <= 0) {
+                this.clearContentGroup()
+                this.switchContent('lose')
+              }
+            }
+          }
+        })
+
+        // Jet-powerup collision: permanent +1 bullet
+        this.nodes.forEach((other) => {
+          if (other.object.userData.isPowerUp) {
+            const intersect = n.bbox.intersectsBox(other.bbox)
+            if (intersect) {
+              this.removeNodeFromContentGroup(other)
+              n.object.userData.bulletCount =
+                (n.object.userData.bulletCount as number) + 1
+            }
+          }
+        })
+
+        // Jet-shield collision: activate 2s immunity
+        this.nodes.forEach((other) => {
+          if (other.object.userData.isShield) {
+            const intersect = n.bbox.intersectsBox(other.bbox)
+            if (intersect) {
+              this.removeNodeFromContentGroup(other)
+              n.object.userData.immune = true
+              const shieldTimeout = window.setTimeout(() => {
+                n.object.userData.immune = false
+              }, 2000)
+              this.addToActiveTimeouts(shieldTimeout)
+            }
+          }
+        })
+
+        // Jet-heart collision: regain 1 life (max 3)
+        this.nodes.forEach((other) => {
+          if (other.object.userData.isHeartDrop) {
+            const intersect = n.bbox.intersectsBox(other.bbox)
+            if (intersect) {
+              this.removeNodeFromContentGroup(other)
+              const lives = n.object.userData.lives as number
+              if (lives < 3) {
+                const newIndex = lives
+                n.object.userData.lives = lives + 1
+                // Re-add heart HUD node
+                const geo = n.object.userData.heartGeo as ExtrudeGeometry
+                if (geo) {
+                  const heartMesh = new Mesh(
+                    geo.clone(),
+                    new MeshBasicMaterial({ color: 0xff0000 })
+                  )
+                  const heart = new ThreeDNode(heartMesh)
+                  heart.object.userData = {
+                    isLifeHeart: true,
+                    heartIndex: newIndex
+                  }
+                  heart.object.position.set(
+                    -PLANE_WIDTH / 2 + 20 + newIndex * 20,
+                    PLANE_HEIGHT - 10,
+                    0
+                  )
+                  this.addToContentGroup(heart)
+                }
+              }
             }
           }
         })
@@ -643,8 +1040,13 @@ export default class Viewport {
     this.raycaster.setFromCamera(this.pointer, this.camera)
 
     this.stats?.update()
-    TWEEN.update()
+    this.tweenGroup.update()
+    this.scene.backgroundRotation.y += 0.0003
     this.water.material.uniforms['time'].value += 1.0 / 60.0
+    this.animateWaves()
+    this.animateSnow()
+    this.animateRipples()
+    this.animateLightTrail()
 
     this.nodes.forEach((n) => {
       n.update()
@@ -666,6 +1068,7 @@ export default class Viewport {
     this.animateNameCircularLightUp()
 
     this.orbitControls.update()
+    // this.spotLightHelper.update()
 
     this.composer.render()
     requestAnimationFrame(this.render.bind(this))

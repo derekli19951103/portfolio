@@ -11,7 +11,7 @@ export const createWireframeText = (
   const geometry = new TextGeometry(text, {
     font,
     size: options?.size || 20,
-    height: 0.1,
+    depth: 0.1,
     bevelEnabled: false
   })
 

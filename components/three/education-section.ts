@@ -1,4 +1,4 @@
-import TWEEN from '@tweenjs/tween.js'
+import { Easing } from '@tweenjs/tween.js'
 import {
   AdditiveBlending,
   Mesh,
@@ -15,12 +15,10 @@ import { PLANE_HEIGHT } from 'constant'
 
 export const addEduContent = async (viewport: Viewport) => {
   const geo = new PlaneGeometry(180, 60)
-
   const mat = new MeshStandardMaterial({
     map: new TextureLoader().load('/textures/uoft.jpg'),
     blending: AdditiveBlending
   })
-
   const mesh = new Mesh(geo, mat)
 
   const node = new ThreeDNode(mesh)
@@ -39,7 +37,8 @@ export const addEduContent = async (viewport: Viewport) => {
       z: 1
     },
     end: { x: 0, y: PLANE_HEIGHT / 2 + 10, z: 1 },
-    easing: TWEEN.Easing.Quadratic.InOut
+    easing: Easing.Quadratic.InOut,
+    group: viewport.tweenGroup
   }).start()
 
   createTranslationAnimation({
@@ -50,7 +49,8 @@ export const addEduContent = async (viewport: Viewport) => {
       z: 0
     },
     end: { x: 10, y: 30, z: 0 },
-    easing: TWEEN.Easing.Quadratic.InOut
+    easing: Easing.Quadratic.InOut,
+    group: viewport.tweenGroup
   }).start()
 
   viewport.addToContentGroup(node, t1)

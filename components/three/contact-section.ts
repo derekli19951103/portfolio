@@ -1,4 +1,4 @@
-import TWEEN from '@tweenjs/tween.js'
+import { Easing } from '@tweenjs/tween.js'
 import { PLANE_HEIGHT, PLANE_WIDTH } from 'constant'
 import { createTranslationAnimation } from 'engine/animations/text-animations'
 import { TransparentBox } from 'engine/objects/TransparentBox'
@@ -73,8 +73,9 @@ export const addContactContent = async (viewport: Viewport) => {
       z: 1
     },
     end: { x: -PLANE_WIDTH / 2 + 60, y: PLANE_HEIGHT / 2 + 40, z: 1 },
-    easing: TWEEN.Easing.Linear.None,
-    duration: 500
+    easing: Easing.Linear.None,
+    duration: 500,
+    group: viewport.tweenGroup
   }).start()
 
   createTranslationAnimation({
@@ -85,8 +86,9 @@ export const addContactContent = async (viewport: Viewport) => {
       z: 0
     },
     end: { x: -PLANE_WIDTH / 2 + 220, y: PLANE_HEIGHT / 2 + 40, z: 0 },
-    easing: TWEEN.Easing.Linear.None,
-    duration: 500
+    easing: Easing.Linear.None,
+    duration: 500,
+    group: viewport.tweenGroup
   }).start()
 
   createTranslationAnimation({
@@ -97,8 +99,9 @@ export const addContactContent = async (viewport: Viewport) => {
       z: 1
     },
     end: { x: -PLANE_WIDTH / 2 + 60, y: PLANE_HEIGHT / 2 - 40, z: 1 },
-    easing: TWEEN.Easing.Linear.None,
-    duration: 500
+    easing: Easing.Linear.None,
+    duration: 500,
+    group: viewport.tweenGroup
   }).start()
 
   createTranslationAnimation({
@@ -109,8 +112,9 @@ export const addContactContent = async (viewport: Viewport) => {
       z: 0
     },
     end: { x: -PLANE_WIDTH / 2 + 220, y: PLANE_HEIGHT / 2 - 40, z: 0 },
-    easing: TWEEN.Easing.Linear.None,
-    duration: 500
+    easing: Easing.Linear.None,
+    duration: 500,
+    group: viewport.tweenGroup
   }).start()
 
   viewport.addToContentGroup(linkedInPic, linkedinLink, githubPic, githubLink)

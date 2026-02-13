@@ -14,7 +14,7 @@ export const createStandardText = (
   const geometry = new TextGeometry(text, {
     font,
     size: params?.size || 20,
-    height: params?.height || 0.1,
+    depth: params?.height || 0.1,
     bevelEnabled: false
   })
 

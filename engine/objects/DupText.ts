@@ -1,4 +1,4 @@
-import TWEEN from '@tweenjs/tween.js'
+import { Easing, Group } from '@tweenjs/tween.js'
 import { Mesh, MeshBasicMaterial, ShapeGeometry, Vector3 } from 'three'
 import { Font } from 'three/examples/jsm/loaders/FontLoader'
 import { createTranslationAnimation } from '../animations/text-animations'
@@ -10,7 +10,8 @@ export const createDupText = (
   params?: {
     size?: number
     height?: number
-  }
+  },
+  tweenGroup?: Group
 ) => {
   const shapes = font.generateShapes(text, params?.size || 20)
 
@@ -47,7 +48,8 @@ export const createDupText = (
       y: mesh.position.y + shadowGap,
       z: mesh.position.z - shadowGap
     },
-    easing: TWEEN.Easing.Quadratic.InOut
+    easing: Easing.Quadratic.InOut,
+    group: tweenGroup
   })
 
   const s2Animation = createTranslationAnimation({
@@ -62,7 +64,8 @@ export const createDupText = (
       y: mesh.position.y - shadowGap,
       z: mesh.position.z + shadowGap
     },
-    easing: TWEEN.Easing.Quadratic.InOut
+    easing: Easing.Quadratic.InOut,
+    group: tweenGroup
   })
 
   node.onRayCasted = (rayCasted) => {

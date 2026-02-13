@@ -18,7 +18,7 @@ export const createBreakingText = (
   let geometry = new TextGeometry(text, {
     font,
     size: params?.size || 20,
-    height: params?.height || 3,
+    depth: params?.height || 3,
     bevelThickness: 1,
     bevelSize: 0.5,
     bevelEnabled:
