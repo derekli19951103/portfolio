@@ -617,9 +617,11 @@ export default class Viewport {
       const x = position.getX(i)
       const y = position.getY(i)
       const z =
-        Math.sin(x * 0.01 + time * 0.8) * 4 +
-        Math.sin(y * 0.015 + time * 1.2) * 3 +
-        Math.cos((x + y) * 0.008 + time * 0.5) * 2
+        Math.sin(x * 0.015 + time * 1.2) * 8 +
+        Math.sin(y * 0.02 + time * 1.8) * 6 +
+        Math.cos((x + y) * 0.012 + time * 0.8) * 5 +
+        Math.sin(x * 0.005 - time * 0.5) * 10 +
+        Math.cos(y * 0.008 + time * 1.0) * 4
       position.setZ(i, z)
     }
     position.needsUpdate = true
@@ -703,9 +705,9 @@ export default class Viewport {
     for (let i = 0; i < this.trailLength; i++) {
       const t = i / (this.trailLength - 1)
       const fade = 1 - t
-      this.trailColors[i * 3] = fade * fade          // R: white → dark
-      this.trailColors[i * 3 + 1] = fade * 0.8 + 0.2 * fade * fade  // G: bright → dim
-      this.trailColors[i * 3 + 2] = fade              // B: stays longer
+      this.trailColors[i * 3] = fade * fade // R: white → dark
+      this.trailColors[i * 3 + 1] = fade * 0.8 + 0.2 * fade * fade // G: bright → dim
+      this.trailColors[i * 3 + 2] = fade // B: stays longer
     }
 
     const geo = this.lightTrail.geometry as LineGeometry
@@ -857,9 +859,7 @@ export default class Viewport {
                 // Lethal hit — drift away on z axis then explode
                 other.object.userData.isWord = false
                 // Increment kill counter
-                const jet = this.nodes.find(
-                  (j) => j.object.userData.isFightJet
-                )
+                const jet = this.nodes.find((j) => j.object.userData.isFightJet)
                 if (jet) {
                   jet.object.userData.kills =
                     (jet.object.userData.kills as number) + 1
