@@ -140,10 +140,11 @@ export const Canvas = () => {
 
   useEffect(() => {
     if (canvasRef.current) {
+      const isDev = process.env.NODE_ENV === 'development'
       //@ts-ignore
-      const stats: Stats = new Stats()
+      const stats: Stats | undefined = isDev ? new Stats() : undefined
 
-      if (process.env.NODE_ENV === 'development') {
+      if (isDev && stats) {
         statsRef.current?.appendChild(stats.dom)
       }
 
@@ -169,15 +170,25 @@ export const Canvas = () => {
       setViewports({
         viewport1: viewport
       })
+
+      return () => {
+        viewport.dispose()
+        if (isDev && stats) {
+          statsRef.current?.removeChild(stats.dom)
+        }
+      }
     }
   }, [isTabletOrMobile, isPortrait])
 
   useEffect(() => {
-    window.addEventListener('keypress', (ev) => {
+    if (!gl) return
+    const handler = (ev: KeyboardEvent) => {
       if (ev.key === 'p') {
-        console.log(gl?.nodes.filter((n) => n.object.userData.isBullet))
+        console.log(gl.nodes.filter((n) => n.object.userData.isBullet))
       }
-    })
+    }
+    window.addEventListener('keypress', handler)
+    return () => window.removeEventListener('keypress', handler)
   }, [gl])
 
   /**

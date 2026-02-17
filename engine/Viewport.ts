@@ -76,12 +76,15 @@ export default class Viewport {
   nodes: ThreeDNode[] = []
   rain: Points
   ripples: { mesh: Mesh; age: number }[] = []
+  private ripplePool: Mesh[] = []
+  private ripplePoolGeo: RingGeometry
 
   orbitControls: OrbitControls
 
   raycaster: Raycaster = new Raycaster()
   pointer: Vector2 = new Vector2()
   mouseWorldPos: Vector3 = new Vector3()
+  private _tempVec3: Vector3 = new Vector3()
   lightTrail: Line2
   trailPositions: number[] = []
   trailColors: number[] = []
@@ -106,6 +109,8 @@ export default class Viewport {
 
   activeIntervals: number[] = []
   activeTimeouts: number[] = []
+  private _rafId: number = 0
+  private _disposed: boolean = false
 
   constructor(props: {
     canvas: HTMLCanvasElement
@@ -126,7 +131,7 @@ export default class Viewport {
     this.scene.add(this.displayContent)
 
     this.renderer.outputColorSpace = SRGBColorSpace
-    this.renderer.setPixelRatio(window.devicePixelRatio)
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     this.renderer.toneMapping = ACESFilmicToneMapping
 
     this.width = width || window.innerWidth
@@ -157,9 +162,9 @@ export default class Viewport {
       this.pointer.x = (x / this.width) * 2 - 1
       this.pointer.y = -(y / this.height) * 2 + 1
 
-      const vector = new Vector3(this.pointer.x, this.pointer.y, 0.5)
-      vector.unproject(this.camera)
-      const dir = vector.sub(this.camera.position).normalize()
+      this._tempVec3.set(this.pointer.x, this.pointer.y, 0.5)
+      this._tempVec3.unproject(this.camera)
+      const dir = this._tempVec3.sub(this.camera.position).normalize()
       const distance = -this.camera.position.z / dir.z
       const pos = this.camera.position.clone().add(dir.multiplyScalar(distance))
       this.mouseSpotLight.position.set(pos.x, pos.y, pos.z + mouseLightZHeight)
@@ -198,15 +203,15 @@ export default class Viewport {
     this.orbitControls.enableDamping = true
 
     this.scene.background = new CubeTextureLoader().load([
-      '/textures/sky/px.png',
-      '/textures/sky/nx.png',
-      '/textures/sky/py.png',
-      '/textures/sky/ny.png',
-      '/textures/sky/pz.png',
-      '/textures/sky/nz.png'
+      '/textures/sky/px.webp',
+      '/textures/sky/nx.webp',
+      '/textures/sky/py.webp',
+      '/textures/sky/ny.webp',
+      '/textures/sky/pz.webp',
+      '/textures/sky/nz.webp'
     ])
 
-    const waterGeometry = new PlaneGeometry(10000, 10000, 100, 100)
+    const waterGeometry = new PlaneGeometry(10000, 10000, 40, 40)
 
     this.water = new Water(waterGeometry, {
       textureWidth: 512,
@@ -262,6 +267,24 @@ export default class Viewport {
 
     this.camera.layers.enable(1)
 
+    // Pre-allocate ripple pool
+    this.ripplePoolGeo = new RingGeometry(0.5, 1, 16)
+    for (let i = 0; i < 50; i++) {
+      const ring = new Mesh(
+        this.ripplePoolGeo,
+        new MeshBasicMaterial({
+          color: 0xffffff,
+          transparent: true,
+          opacity: 0.4,
+          side: DoubleSide
+        })
+      )
+      ring.rotation.x = -Math.PI / 2
+      ring.visible = false
+      this.scene.add(ring)
+      this.ripplePool.push(ring)
+    }
+
     // Cursor light trail (Line2 with per-vertex color for fade)
     for (let i = 0; i < this.trailLength; i++) {
       this.trailPositions.push(0, -9999, 0)
@@ -290,10 +313,11 @@ export default class Viewport {
     const effectGrayScale = new ShaderPass(LuminosityShader)
 
     this.effectSobel = new ShaderPass(SobelOperatorShader)
+    const cappedDpr = Math.min(window.devicePixelRatio, 2)
     this.effectSobel.uniforms['resolution'].value.x =
-      window.innerWidth * window.devicePixelRatio
+      window.innerWidth * cappedDpr
     this.effectSobel.uniforms['resolution'].value.y =
-      window.innerHeight * window.devicePixelRatio
+      window.innerHeight * cappedDpr
 
     const bloomPass = new UnrealBloomPass(
       new Vector2(this.width, this.height),
@@ -318,10 +342,9 @@ export default class Viewport {
         this.renderer.setSize(this.width, this.height)
         this.composer.setSize(this.width, this.height)
 
-        this.effectSobel.uniforms['resolution'].value.x =
-          this.width * window.devicePixelRatio
-        this.effectSobel.uniforms['resolution'].value.y =
-          this.height * window.devicePixelRatio
+        const dpr = Math.min(window.devicePixelRatio, 2)
+        this.effectSobel.uniforms['resolution'].value.x = this.width * dpr
+        this.effectSobel.uniforms['resolution'].value.y = this.height * dpr
       }
     })
 
@@ -657,18 +680,12 @@ export default class Viewport {
   }
 
   spawnRipple(x: number, z: number) {
-    const ring = new Mesh(
-      new RingGeometry(0.5, 1, 16),
-      new MeshBasicMaterial({
-        color: 0xffffff,
-        transparent: true,
-        opacity: 0.4,
-        side: DoubleSide
-      })
-    )
-    ring.rotation.x = -Math.PI / 2
+    const ring = this.ripplePool.pop()
+    if (!ring) return // Pool exhausted, skip this ripple
     ring.position.set(x, 0.5, z)
-    this.scene.add(ring)
+    ring.scale.set(1, 1, 1)
+    ;(ring.material as MeshBasicMaterial).opacity = 0.4
+    ring.visible = true
     this.ripples.push({ mesh: ring, age: 0 })
   }
 
@@ -681,9 +698,8 @@ export default class Viewport {
       const mat = ripple.mesh.material as MeshBasicMaterial
       mat.opacity = 0.4 * (1 - ripple.age / 30)
       if (ripple.age >= 30) {
-        this.scene.remove(ripple.mesh)
-        mat.dispose()
-        ripple.mesh.geometry.dispose()
+        ripple.mesh.visible = false
+        this.ripplePool.push(ripple.mesh)
         this.ripples.splice(i, 1)
       }
     }
@@ -701,18 +717,8 @@ export default class Viewport {
     this.trailPositions[1] = this.mouseWorldPos.y
     this.trailPositions[2] = this.mouseWorldPos.z + 1
 
-    // Update colors: bright at head, fading to nothing at tail
-    for (let i = 0; i < this.trailLength; i++) {
-      const t = i / (this.trailLength - 1)
-      const fade = 1 - t
-      this.trailColors[i * 3] = fade * fade // R: white → dark
-      this.trailColors[i * 3 + 1] = fade * 0.8 + 0.2 * fade * fade // G: bright → dim
-      this.trailColors[i * 3 + 2] = fade // B: stays longer
-    }
-
     const geo = this.lightTrail.geometry as LineGeometry
     geo.setPositions(this.trailPositions)
-    geo.setColors(this.trailColors)
   }
 
   addToActiveIntervals(...numbers: number[]) {
@@ -787,248 +793,235 @@ export default class Viewport {
   jetGameLogic() {
     const time = Date.now() * 0.001
 
-    // Zigzag word animation
-    this.nodes.forEach((n) => {
-      if (n.object.userData.isWord && n.object.userData.isZigzag) {
-        const { originalX, zigzagSpeed, zigzagAmplitude } = n.object.userData
-        n.object.position.x =
-          Math.sin(time * zigzagSpeed) * zigzagAmplitude + originalX
-      }
-    })
+    // Pre-filter nodes into typed arrays to avoid O(n²) scans
+    const bullets: ThreeDNode[] = []
+    const words: ThreeDNode[] = []
+    const powerUps: ThreeDNode[] = []
+    const shields: ThreeDNode[] = []
+    const heartDrops: ThreeDNode[] = []
+    let jet: ThreeDNode | undefined
 
-    this.nodes.forEach((n) => {
-      if (n.object.userData.isBullet) {
-        this.nodes.forEach((other) => {
-          if (other.object.userData.isWord) {
-            const intersect = n.bbox.intersectsBox(other.bbox)
-            if (intersect) {
-              const hitPos = n.object.position.clone()
-              this.removeNodeFromContentGroup(n)
-              if (
-                other.object.userData.impactCount < other.object.userData.armor
-              ) {
-                other.object.userData.impactCount += 1
-                ;(
-                  other.object.material as ShaderMaterial
-                ).uniforms.amplitude.value =
-                  other.object.userData.impactCount /
-                  other.object.userData.armor
-                // Spark + scale punch + shake on non-lethal hit
-                spawnExplosion(this, hitPos)
-                const origScale = other.object.scale.clone()
-                const origPos = other.object.position.clone()
-                new Tween({ s: 1 }, this.tweenGroup)
-                  .to({ s: 1.5 }, 80)
-                  .easing(Easing.Quadratic.Out)
+    for (const n of this.nodes) {
+      const ud = n.object.userData
+      if (ud.isBullet) bullets.push(n)
+      else if (ud.isWord) {
+        words.push(n)
+        // Zigzag word animation
+        if (ud.isZigzag) {
+          n.object.position.x =
+            Math.sin(time * ud.zigzagSpeed) * ud.zigzagAmplitude + ud.originalX
+        }
+      } else if (ud.isPowerUp) powerUps.push(n)
+      else if (ud.isShield) shields.push(n)
+      else if (ud.isHeartDrop) heartDrops.push(n)
+      else if (ud.isFightJet) jet = n
+    }
+
+    // Bullet-word collisions
+    for (const b of bullets) {
+      for (const w of words) {
+        if (!w.object.userData.isWord) continue
+        const intersect = b.bbox.intersectsBox(w.bbox)
+        if (intersect) {
+          const hitPos = b.object.position.clone()
+          this.removeNodeFromContentGroup(b)
+          if (w.object.userData.impactCount < w.object.userData.armor) {
+            w.object.userData.impactCount += 1
+            ;(w.object.material as ShaderMaterial).uniforms.amplitude.value =
+              w.object.userData.impactCount / w.object.userData.armor
+            spawnExplosion(this, hitPos)
+            const origScale = w.object.scale.clone()
+            const origPos = w.object.position.clone()
+            new Tween({ s: 1 }, this.tweenGroup)
+              .to({ s: 1.5 }, 80)
+              .easing(Easing.Quadratic.Out)
+              .onUpdate(({ s }) => {
+                w.object.scale.set(
+                  origScale.x * s,
+                  origScale.y * s,
+                  origScale.z * s
+                )
+              })
+              .onComplete(() => {
+                new Tween({ s: 1.5 }, this.tweenGroup)
+                  .to({ s: 1 }, 120)
+                  .easing(Easing.Bounce.Out)
                   .onUpdate(({ s }) => {
-                    other.object.scale.set(
+                    w.object.scale.set(
                       origScale.x * s,
                       origScale.y * s,
                       origScale.z * s
                     )
                   })
-                  .onComplete(() => {
-                    new Tween({ s: 1.5 }, this.tweenGroup)
-                      .to({ s: 1 }, 120)
-                      .easing(Easing.Bounce.Out)
-                      .onUpdate(({ s }) => {
-                        other.object.scale.set(
-                          origScale.x * s,
-                          origScale.y * s,
-                          origScale.z * s
-                        )
-                      })
-                      .start()
-                  })
                   .start()
-                // Shake
-                let shakeCount = 0
-                const shakeInterval = window.setInterval(() => {
-                  other.object.position.x =
-                    origPos.x + (Math.random() - 0.5) * 8
-                  other.object.position.y =
-                    origPos.y + (Math.random() - 0.5) * 4
-                  shakeCount++
-                  if (shakeCount >= 6) {
-                    window.clearInterval(shakeInterval)
-                    other.object.position.x = origPos.x
-                    other.object.position.y = origPos.y
-                  }
-                }, 30)
-              } else {
-                // Lethal hit — drift away on z axis then explode
-                other.object.userData.isWord = false
-                // Increment kill counter
-                const jet = this.nodes.find((j) => j.object.userData.isFightJet)
-                if (jet) {
-                  jet.object.userData.kills =
-                    (jet.object.userData.kills as number) + 1
-                  const hud = this.nodes.find(
-                    (h) => h.object.userData.isKillsHud
-                  )
-                  if (hud) {
-                    const child = hud.object.children[0] as Mesh<TextGeometry>
-                    if (child && child.geometry) {
-                      const params = child.geometry.parameters
-                      if (params && params.options && params.options.font) {
-                        child.geometry.dispose()
-                        child.geometry = new TextGeometry(
-                          `Defeated: ${jet.object.userData.kills}`,
-                          { ...params.options, font: params.options.font }
-                        )
-                      }
-                    }
+              })
+              .start()
+            let shakeCount = 0
+            const shakeInterval = window.setInterval(() => {
+              w.object.position.x = origPos.x + (Math.random() - 0.5) * 8
+              w.object.position.y = origPos.y + (Math.random() - 0.5) * 4
+              shakeCount++
+              if (shakeCount >= 6) {
+                window.clearInterval(shakeInterval)
+                w.object.position.x = origPos.x
+                w.object.position.y = origPos.y
+              }
+            }, 30)
+          } else {
+            w.object.userData.isWord = false
+            if (jet) {
+              jet.object.userData.kills =
+                (jet.object.userData.kills as number) + 1
+              const hud = this.nodes.find((h) => h.object.userData.isKillsHud)
+              if (hud) {
+                const child = hud.object.children[0] as Mesh<TextGeometry>
+                if (child && child.geometry) {
+                  const params = child.geometry.parameters
+                  if (params && params.options && params.options.font) {
+                    child.geometry.dispose()
+                    child.geometry = new TextGeometry(
+                      `Defeated: ${jet.object.userData.kills}`,
+                      { ...params.options, font: params.options.font }
+                    )
                   }
                 }
-                const deathPos = other.object.position.clone()
-                spawnExplosion(this, deathPos)
-                new Tween({ z: deathPos.z, s: 1 }, this.tweenGroup)
-                  .to({ z: deathPos.z - 200, s: 0.01 }, 500)
-                  .easing(Easing.Quadratic.In)
-                  .onUpdate(({ z, s }) => {
-                    other.object.position.z = z
-                    other.object.scale.setScalar(s)
-                  })
-                  .onComplete(() => {
-                    spawnExplosion(this, deathPos)
-                    this.removeNodeFromContentGroup(other)
-                  })
-                  .start()
               }
             }
+            const deathPos = w.object.position.clone()
+            spawnExplosion(this, deathPos)
+            new Tween({ z: deathPos.z, s: 1 }, this.tweenGroup)
+              .to({ z: deathPos.z - 200, s: 0.01 }, 500)
+              .easing(Easing.Quadratic.In)
+              .onUpdate(({ z, s }) => {
+                w.object.position.z = z
+                w.object.scale.setScalar(s)
+              })
+              .onComplete(() => {
+                spawnExplosion(this, deathPos)
+                this.removeNodeFromContentGroup(w)
+              })
+              .start()
           }
-        })
+          break // Bullet consumed, move to next bullet
+        }
       }
-      if (n.object.userData.isFightJet) {
-        // Animate aura ring
-        const aura = n.object.children.find((c) => c.userData.isAura) as
-          | Mesh
-          | undefined
-        if (aura) {
-          aura.visible = n.object.userData.immune as boolean
-          if (aura.visible) {
-            aura.rotation.z += 0.05
-            const pulse = 0.3 + Math.abs(Math.sin(Date.now() * 0.005)) * 0.4
-            ;(aura.material as MeshBasicMaterial).opacity = pulse
+    }
+
+    if (jet) {
+      // Animate aura ring
+      const aura = jet.object.children.find((c) => c.userData.isAura) as
+        | Mesh
+        | undefined
+      if (aura) {
+        aura.visible = jet.object.userData.immune as boolean
+        if (aura.visible) {
+          aura.rotation.z += 0.05
+          const pulse = 0.3 + Math.abs(Math.sin(Date.now() * 0.005)) * 0.4
+          ;(aura.material as MeshBasicMaterial).opacity = pulse
+        }
+      }
+
+      // Jet-word collision
+      for (const w of words) {
+        if (!w.object.userData.isWord) continue
+        const intersect = jet.bbox.intersectsBox(w.bbox)
+        if (intersect) {
+          if (jet.object.userData.immune) {
+            this.removeNodeFromContentGroup(w)
+            continue
+          }
+
+          this.removeNodeFromContentGroup(w)
+          jet.object.userData.lives -= 1
+
+          const lives = jet.object.userData.lives as number
+          const heart = this.nodes.find(
+            (h) =>
+              h.object.userData.isLifeHeart &&
+              h.object.userData.heartIndex === lives
+          )
+          if (heart) {
+            this.removeNodeFromContentGroup(heart)
+          }
+
+          spawnExplosion(this, jet.object.position.clone())
+          jet.object.visible = false
+          let flashCount = 0
+          const flashInterval = window.setInterval(() => {
+            jet!.object.visible = !jet!.object.visible
+            flashCount++
+            if (flashCount >= 6) {
+              window.clearInterval(flashInterval)
+              jet!.object.visible = true
+            }
+          }, 80)
+          this.addToActiveIntervals(flashInterval)
+
+          jet.object.userData.immune = true
+          const immuneTimeout = window.setTimeout(() => {
+            jet!.object.userData.immune = false
+          }, 1000)
+          this.addToActiveTimeouts(immuneTimeout)
+
+          if (jet.object.userData.lives <= 0) {
+            this.clearContentGroup()
+            this.switchContent('lose')
+            return
           }
         }
-
-        // Jet-word collision: decrement lives (skip if immune)
-        this.nodes.forEach((other) => {
-          if (other.object.userData.isWord) {
-            const intersect = n.bbox.intersectsBox(other.bbox)
-            if (intersect) {
-              if (n.object.userData.immune) {
-                // Immune — destroy word without damage
-                this.removeNodeFromContentGroup(other)
-                return
-              }
-
-              this.removeNodeFromContentGroup(other)
-              n.object.userData.lives -= 1
-
-              // Remove one heart from HUD
-              const lives = n.object.userData.lives as number
-              const heart = this.nodes.find(
-                (h) =>
-                  h.object.userData.isLifeHeart &&
-                  h.object.userData.heartIndex === lives
-              )
-              if (heart) {
-                this.removeNodeFromContentGroup(heart)
-              }
-
-              // Hit feedback: explosion particles + flash
-              spawnExplosion(this, n.object.position.clone())
-              n.object.visible = false
-              let flashCount = 0
-              const flashInterval = window.setInterval(() => {
-                n.object.visible = !n.object.visible
-                flashCount++
-                if (flashCount >= 6) {
-                  window.clearInterval(flashInterval)
-                  n.object.visible = true
-                }
-              }, 80)
-              this.addToActiveIntervals(flashInterval)
-
-              // 1 second immunity after hit
-              n.object.userData.immune = true
-              const immuneTimeout = window.setTimeout(() => {
-                n.object.userData.immune = false
-              }, 1000)
-              this.addToActiveTimeouts(immuneTimeout)
-
-              if (n.object.userData.lives <= 0) {
-                this.clearContentGroup()
-                this.switchContent('lose')
-              }
-            }
-          }
-        })
-
-        // Jet-powerup collision: permanent +1 bullet
-        this.nodes.forEach((other) => {
-          if (other.object.userData.isPowerUp) {
-            const intersect = n.bbox.intersectsBox(other.bbox)
-            if (intersect) {
-              this.removeNodeFromContentGroup(other)
-              n.object.userData.bulletCount =
-                (n.object.userData.bulletCount as number) + 1
-            }
-          }
-        })
-
-        // Jet-shield collision: activate 2s immunity
-        this.nodes.forEach((other) => {
-          if (other.object.userData.isShield) {
-            const intersect = n.bbox.intersectsBox(other.bbox)
-            if (intersect) {
-              this.removeNodeFromContentGroup(other)
-              n.object.userData.immune = true
-              const shieldTimeout = window.setTimeout(() => {
-                n.object.userData.immune = false
-              }, 2000)
-              this.addToActiveTimeouts(shieldTimeout)
-            }
-          }
-        })
-
-        // Jet-heart collision: regain 1 life (max 3)
-        this.nodes.forEach((other) => {
-          if (other.object.userData.isHeartDrop) {
-            const intersect = n.bbox.intersectsBox(other.bbox)
-            if (intersect) {
-              this.removeNodeFromContentGroup(other)
-              const lives = n.object.userData.lives as number
-              if (lives < 3) {
-                const newIndex = lives
-                n.object.userData.lives = lives + 1
-                // Re-add heart HUD node
-                const geo = n.object.userData.heartGeo as ExtrudeGeometry
-                if (geo) {
-                  const heartMesh = new Mesh(
-                    geo.clone(),
-                    new MeshBasicMaterial({ color: 0xff0000 })
-                  )
-                  const heart = new ThreeDNode(heartMesh)
-                  heart.object.userData = {
-                    isLifeHeart: true,
-                    heartIndex: newIndex
-                  }
-                  heart.object.position.set(
-                    -PLANE_WIDTH / 2 + 20 + newIndex * 20,
-                    PLANE_HEIGHT - 10,
-                    0
-                  )
-                  this.addToContentGroup(heart)
-                }
-              }
-            }
-          }
-        })
       }
-    })
+
+      // Jet-powerup collision
+      for (const p of powerUps) {
+        if (jet.bbox.intersectsBox(p.bbox)) {
+          this.removeNodeFromContentGroup(p)
+          jet.object.userData.bulletCount =
+            (jet.object.userData.bulletCount as number) + 1
+        }
+      }
+
+      // Jet-shield collision
+      for (const s of shields) {
+        if (jet.bbox.intersectsBox(s.bbox)) {
+          this.removeNodeFromContentGroup(s)
+          jet.object.userData.immune = true
+          const shieldTimeout = window.setTimeout(() => {
+            jet!.object.userData.immune = false
+          }, 2000)
+          this.addToActiveTimeouts(shieldTimeout)
+        }
+      }
+
+      // Jet-heart collision
+      for (const h of heartDrops) {
+        if (jet.bbox.intersectsBox(h.bbox)) {
+          this.removeNodeFromContentGroup(h)
+          const lives = jet.object.userData.lives as number
+          if (lives < 3) {
+            const newIndex = lives
+            jet.object.userData.lives = lives + 1
+            const geo = jet.object.userData.heartGeo as ExtrudeGeometry
+            if (geo) {
+              const heartMesh = new Mesh(
+                geo.clone(),
+                new MeshBasicMaterial({ color: 0xff0000 })
+              )
+              const heartNode = new ThreeDNode(heartMesh)
+              heartNode.object.userData = {
+                isLifeHeart: true,
+                heartIndex: newIndex
+              }
+              heartNode.object.position.set(
+                -PLANE_WIDTH / 2 + 20 + newIndex * 20,
+                PLANE_HEIGHT - 10,
+                0
+              )
+              this.addToContentGroup(heartNode)
+            }
+          }
+        }
+      }
+    }
   }
 
   restartJetGame() {
@@ -1050,11 +1043,11 @@ export default class Viewport {
 
     this.nodes.forEach((n) => {
       n.update()
-      const intersect = this.raycaster.intersectObject(n.object, true)
-      n.setRayCasted(intersect.length > 0)
+      if (n.object.userData.isName || n.object.userData.isRotatingCube) {
+        const intersect = this.raycaster.intersectObject(n.object, true)
+        n.setRayCasted(intersect.length > 0)
 
-      if (n.isRayCasted) {
-        if (n.object.userData.isRotatingCube) {
+        if (n.isRayCasted && n.object.userData.isRotatingCube) {
           n.object.rotation.x -= 0.02
           n.object.rotation.y -= 0.02
         }
@@ -1071,6 +1064,30 @@ export default class Viewport {
     // this.spotLightHelper.update()
 
     this.composer.render()
-    requestAnimationFrame(this.render.bind(this))
+    if (!this._disposed) {
+      this._rafId = requestAnimationFrame(this.render.bind(this))
+    }
+  }
+
+  dispose() {
+    this._disposed = true
+    cancelAnimationFrame(this._rafId)
+    this.clearActiveIntervals()
+    this.clearActiveTimeouts()
+
+    this.scene.traverse((obj) => {
+      if (obj instanceof Mesh) {
+        obj.geometry?.dispose()
+        if (Array.isArray(obj.material)) {
+          obj.material.forEach((m) => m.dispose())
+        } else {
+          obj.material?.dispose()
+        }
+      }
+    })
+
+    this.composer.dispose()
+    this.renderer.dispose()
+    this.orbitControls.dispose()
   }
 }

@@ -1,4 +1,3 @@
-import { group } from 'console'
 import { Group, Matrix4 } from 'three'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader'
 
