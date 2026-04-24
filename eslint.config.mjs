@@ -1,5 +1,8 @@
-import nextConfig from "eslint-config-next";
+import js from '@eslint/js'
 
-const eslintConfig = [...nextConfig];
-
-export default eslintConfig;
+export default [
+  js.configs.recommended,
+  {
+    ignores: ['dist', 'node_modules', '.vite']
+  }
+]

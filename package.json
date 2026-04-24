@@ -1,15 +1,15 @@
 {
   "name": "portfolio",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
     "lint": "eslint ."
   },
   "dependencies": {
     "@tweenjs/tween.js": "^25.0.0",
-    "next": "^16.1.6",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-responsive": "^10.0.1",
@@ -20,8 +20,10 @@
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@types/three": "^0.182.0",
+    "@eslint/js": "^9.25.0",
+    "@vitejs/plugin-react": "^4.3.4",
     "eslint": "^9.25.0",
-    "eslint-config-next": "^16.1.6",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vite": "^6.0.0"
   }
 }
