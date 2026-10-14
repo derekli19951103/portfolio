@@ -236,11 +236,11 @@
       · Phone: 647‑949‑3090
     </div>
 
-    <div class="tagline">Full-Stack Engineer (6 Years) — SaaS, Cloud-Native Architecture, Scripting & DevOps</div>
+    <div class="tagline">Full-Stack Engineer (7 Years) — SaaS, Cloud-Native Architecture, Scripting & DevOps</div>
 
     <h2>Summary</h2>
     <div class="summary">
-      Full‑stack engineer with six years of experience delivering reliable, scalable SaaS products. Recognized for sound
+      Full‑stack engineer with seven years of experience delivering reliable, scalable SaaS products. Recognized for sound
       technical judgment, clear communication of trade‑offs, and end‑to‑end execution from design through production.
       Since 2022, when GitHub Copilot was in technical preview, I’ve embraced AI coding assistants and integrated a
       range of AI‑assisted development tools into my workflow to enhance productivity and code quality. I value
@@ -251,6 +251,7 @@
     <h2>Core Skills</h2>
     <div class="skills-list">
       <div><b>Languages:</b> TypeScript, JavaScript, Rust, Python, SQL</div>
+      <div><b>AI & Agents:</b> Claude Code, MCP, Gemini (Vertex AI, Live API) tool calling, RAG</div>
       <div><b>Frontend:</b> React, Next.js, Angular, Tailwind CSS (Bootstrap → Tailwind refactors), Three.js</div>
       <div><b>Backend:</b> Node.js (Express/Nest patterns), Actix Web (Rust), GraphQL, REST, WebSockets</div>
       <div><b>Data:</b> PostgreSQL, MySQL, MongoDB, Redis, data migration scripting</div>
@@ -277,30 +278,34 @@
       <div class="when">2023 – Present</div>
     </div>
     <ul>
+      <li>Architected a production AI agent platform: Gemini tool‑calling agents that research course topics, vet
+        student requests, and draft and monitor email campaigns on a shared, budget‑capped tool loop. Nothing sends
+        without human approval, and guardrails live in code, not prompts.</li>
+      <li>Made AI coding agents (Claude Code) my main way of building: 157 merged PRs in 2026, about 85% of my work
+        since May. I write the design spec and plan, agents implement it task by task with TDD, each task gets an
+        independent review, and multi‑agent adversarial review runs before merge.</li>
+      <li>Led the production migration from MySQL to PostgreSQL (148 tables, ~108M rows). Turned 162 app‑level
+        relations into 260 enforced foreign keys, verified against full production data, and cut over to
+        Terraform‑managed Aurora PostgreSQL behind feature flags.</li>
+      <li>Shipped core features of AIFormula, an AI learning assistant: a Gemini Live voice interviewer that turns an
+        instructor’s interview into a course, a multi‑chat workspace with live course and credit cards, and course
+        edits proposed as cards the learner applies.</li>
       <li>Architected a unified background processing platform (Redis + BullMQ), migrating legacy MySQL + PHP cron jobs;
         reduced campaign scheduling from ~1 hour to ~10 seconds, improved reliability, and enabled shared job logic
         across Node.js services.</li>
-      <li>Delivered an in‑house FFmpeg media pipeline replacing AWS MediaConvert (MP4 → HLS, audio + image composition),
-        integrated with the queue and cutting transcoding/streaming costs by ~50%.</li>
+      <li>Rebuilt the Stripe integration around one idempotent sync layer with event‑time ordering and nightly
+        reconciliation with drift alerts, hardened through two rounds of multi‑agent adversarial code review.</li>
       <li>Co‑led the migration from AWS Elastic Beanstalk to Terraform‑managed infrastructure (ECS, S3, RDS, Cognito,
         OpenSearch, CloudFront), codifying services for reproducible, reviewable environments. Reviewed and optimized
         AWS architecture (rightsizing, service selection, caching), reducing operational cloud
         spend by ~20%.</li>
-      <li>Partnered with product managers and designers to led frontend modernization from Bootstrap to Tailwind CSS
-        with a component library, improving consistency and
-        developer velocity, aligned UI with the component library and clarified requirements to reduce rework</li>
-      <li>Approached marketing team to showcase possible expansions of Stripe integration and led the project to support
-        additional pricing models and oversaw idempotent, retryable
-        webhooks—contributing to growth in new subscription revenue.</li>
-      <li>In collaborate with App developers, oversaw adoption of AWS Cognito to unify identity across web and React
-        Native, simplifying SSO domain
-        configuration and token strategy.</li>
-      <li>Established a Puppeteer rendering service for webpage‑to‑image tasks, integrated into the queue and avoiding
-        third‑party tooling (~50% cost savings).</li>
+      <li>Delivered an in‑house FFmpeg media pipeline replacing AWS MediaConvert (MP4 → HLS, audio + image composition),
+        integrated with the queue and cutting transcoding/streaming costs by ~50%.</li>
       <li>Led prototyping of an AI‑assisted content pipeline from source readings to structured content, transcripts,
         TTS voiceovers, auto‑generated slides, and rendered video.</li>
-      <li>Collaborated on React Native app development, aligning authentication and shared domain logic with the web
-        platform.</li>
+      <li>In collaboration with app developers, oversaw adoption of AWS Cognito to unify identity across web and React
+        Native, simplifying SSO domain
+        configuration and token strategy.</li>
     </ul>
     <div class="tech">Tech: React, Next.js, Node.js, TypeScript, Redis, BullMQ, Stripe, AWS (Cognito, SES, CloudFront,
       ECS, S3, RDS, OpenSearch), Mailgun, Sendgrid, Terraform, Docker, FFmpeg, Puppeteer</div>
@@ -321,18 +326,18 @@
       <li>Participated as a core member and developed Rust‑based GraphQL services for quoting, orders, and project data,
         evolving schemas
         to support product expansion.</li>
+      <li>Established Amazon SQS for asynchronous task decoupling and architected gRPC service‑to‑service communication
+        to standardize contracts and reduce coupling.</li>
       <li>Developed Stripe subscriptions/checkout/invoicing integration and established secure, idempotent webhook
         processing
         to maintain billing integrity.</li>
-      <li>Established Amazon SQS for asynchronous task decoupling and architected gRPC service‑to‑service communication
-        to standardize contracts and reduce coupling.</li>
+      <li>Delivered customer/admin web UIs (React/Next.js + GraphQL) for order management, client project tracking, and
+        billing visibility.</li>
+      <li>Managed CI/CD via GitHub Actions (build/test/deploy pipelines), reducing manual deploy friction and improving
+        release cadence.</li>
       <li>Researched and presented Sanity.io CMS integration, empowering non‑technical teams to publish marketing and
         catalog content
         independently.</li>
-      <li>Delivered customer/admin web UIs (React/Next.js + GraphQL) for order management, client project tracking, and
-        billing visibility..</li>
-      <li>Managed CI/CD via GitHub Actions (build/test/deploy pipelines), reducing manual deploy friction and improving
-        release cadence.</li>
     </ul>
     <div class="tech">Tech: Three.js, React/Next.js, Rust (Actix Web), GraphQL, Stripe, Amazon SQS, gRPC, Sanity.io,
       GitHub Actions, Docker, AWS</div>
