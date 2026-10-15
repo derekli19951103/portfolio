@@ -6,7 +6,7 @@ import {
   addGameOver,
   spawnExplosion
 } from 'components/three/fighter-jet'
-import { addIntroContent } from 'components/three/intro-section'
+import { addAskContent } from 'components/three/ask-section'
 import { addResumeContent } from 'components/three/resume-section'
 import {
   ACESFilmicToneMapping,
@@ -101,6 +101,10 @@ export default class Viewport {
   plane?: ThreeDNode
 
   raised = false
+  // Set by the first letter click; the "click a letter" hint then fades out
+  hintDismissed = false
+  // The hint's HTML element and the point above the name it sits over
+  private hint?: { element: HTMLElement; anchor: Vector3 }
 
   selectedTabIndex?: number
   displayContent = new Group()
@@ -109,6 +113,8 @@ export default class Viewport {
 
   activeIntervals: number[] = []
   activeTimeouts: number[] = []
+  // Teardown for content that lives outside the scene, like HTML overlays
+  contentCleanups: (() => void)[] = []
   private _rafId: number = 0
   private _disposed: boolean = false
 
@@ -350,10 +356,14 @@ export default class Viewport {
 
     canvas.addEventListener('click', (e) => {
       e.preventDefault()
+      // Hit-test where the click landed: a tap has no hover beforehand
+      onPointerMove(e.clientX, e.clientY)
+      this.updateHover()
       this.nodes.forEach((n) => {
         if (n.isRayCasted) {
           n.setSelected(!n.isSelected)
           if (n.object.userData.isName) {
+            this.hintDismissed = true
             const nameIndex = n.object.userData.nameIndex
 
             if (!this.raised) {
@@ -448,6 +458,16 @@ export default class Viewport {
     this.displayContent.clear()
     this.clearActiveIntervals()
     this.clearActiveTimeouts()
+    this.clearContentCleanups()
+  }
+
+  addContentCleanup(cleanup: () => void) {
+    this.contentCleanups.push(cleanup)
+  }
+
+  clearContentCleanups() {
+    this.contentCleanups.forEach((cleanup) => cleanup())
+    this.contentCleanups = []
   }
 
   addPlane(node: ThreeDNode) {
@@ -569,50 +589,63 @@ export default class Viewport {
   }
 
   animateName() {
-    const time = Date.now() * 0.001
-    const speed = Math.sin(time)
+    const pulse = Math.abs(Math.sin(Date.now() * 0.001)) / 2
+    // On the landing view, every two seconds the next letter that opens a tab
+    // shimmers, a hint that the letters can be clicked. Once a tab is open the
+    // open one is the only letter lit.
+    const tabs = this.nodes.filter(
+      (n) => n.object.userData.isName && n.object.userData.hasTab
+    )
+    const shimmering = this.raised
+      ? undefined
+      : tabs[Math.floor(Date.now() / 2000) % tabs.length]
+
     this.nodes.forEach((n) => {
-      if (n.object.userData.isName) {
+      const { isName, nameIndex } = n.object.userData
+      if (isName) {
+        // Only the open tab's letter stays lit, however many were clicked
+        const open = this.raised && nameIndex === this.selectedTabIndex
+        const active = n.isRayCasted || open
+        ;(n.object.material as ShaderMaterial).uniforms.amplitude.value =
+          active || n === shimmering ? pulse : 0
+
         const label = n.object.children.find(
           (c) => c.userData.isNameLabelTag
         ) as Mesh<TextGeometry, Material> | undefined
-        if (n.isRayCasted || n.isSelected) {
-          ;(n.object.material as ShaderMaterial).uniforms.amplitude.value =
-            Math.abs(speed) / 2
-
-          if (label) {
-            label.material.opacity = Math.abs(speed) / 2
-          }
-        } else {
-          ;(n.object.material as ShaderMaterial).uniforms.amplitude.value = 0
-          if (label) {
-            label.material.opacity = 0
-          }
+        if (label) {
+          // Labels rest faintly so each letter shows where it leads, and
+          // light up on hover and for the open tab. The edge filter turns
+          // anything over about 0.3 opacity full white, so rest stays low.
+          const target = active ? 1 : n === shimmering ? 0.35 : 0.12
+          label.material.opacity += (target - label.material.opacity) * 0.15
         }
       }
     })
   }
 
-  animateNameCircularLightUp() {
-    const time = Date.now() * 0.001
-    const names = this.nodes.filter((n) => n.object.userData.isName)
-    names.forEach((n) => {
-      const index = Math.floor(Date.now() / 2000) % 8
-      const speed = Math.sin(time)
+  setHint(element: HTMLElement, anchor: Vector3) {
+    // The name can finish loading after a dev remount has disposed us
+    if (this._disposed) {
+      element.remove()
+      return
+    }
+    this.hint = { element, anchor }
+  }
 
-      const label = n.object.children.find((c) => c.userData.isNameLabelTag) as
-        | Mesh<TextGeometry, Material>
-        | undefined
-
-      if (index === n.object.userData.nameIndex) {
-        ;(n.object.material as ShaderMaterial).uniforms.amplitude.value =
-          Math.abs(speed) / 2
-
-        if (label) {
-          label.material.opacity = Math.abs(speed) / 2
-        }
-      }
-    })
+  // Keeps the hint over its spot as the camera moves, until a letter click
+  positionHint() {
+    if (!this.hint) return
+    const { element, anchor } = this.hint
+    if (this.hintDismissed) {
+      element.classList.add('name-hint--off')
+      return
+    }
+    const point = this._tempVec3.copy(anchor).project(this.camera)
+    const x = ((point.x + 1) / 2) * this.width
+    const y = ((1 - point.y) / 2) * this.height
+    element.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`
+    // Behind the camera after an orbit: hide rather than mirror it
+    element.style.visibility = point.z < 1 ? '' : 'hidden'
   }
 
   animateDolphins() {
@@ -752,7 +785,7 @@ export default class Viewport {
         addEduContent(this)
         break
       case 2:
-        addIntroContent(this)
+        addAskContent(this)
         break
       case 3:
         addToolsContent(this)
@@ -1029,9 +1062,25 @@ export default class Viewport {
     this.switchContent(5)
   }
 
-  render() {
+  // Hover state for everything clickable, with a hand cursor over anything
+  // that opens something
+  updateHover() {
     this.raycaster.setFromCamera(this.pointer, this.camera)
+    let overClickable = false
+    this.nodes.forEach((n) => {
+      const { isName, isRotatingCube, isLink, hasTab } = n.object.userData
+      if (!isName && !isRotatingCube && !isLink) return
+      n.setRayCasted(this.raycaster.intersectObject(n.object, true).length > 0)
+      if (n.isRayCasted && (hasTab || isRotatingCube || isLink)) {
+        overClickable = true
+      }
+    })
+    const cursor = overClickable ? 'pointer' : ''
+    const style = this.renderer.domElement.style
+    if (style.cursor !== cursor) style.cursor = cursor
+  }
 
+  render() {
     this.stats?.update()
     this.tweenGroup.update()
     this.scene.backgroundRotation.y += 0.0003
@@ -1041,24 +1090,20 @@ export default class Viewport {
     this.animateRipples()
     this.animateLightTrail()
 
+    this.nodes.forEach((n) => n.update())
+    this.updateHover()
     this.nodes.forEach((n) => {
-      n.update()
-      if (n.object.userData.isName || n.object.userData.isRotatingCube) {
-        const intersect = this.raycaster.intersectObject(n.object, true)
-        n.setRayCasted(intersect.length > 0)
-
-        if (n.isRayCasted && n.object.userData.isRotatingCube) {
-          n.object.rotation.x -= 0.02
-          n.object.rotation.y -= 0.02
-        }
+      if (n.isRayCasted && n.object.userData.isRotatingCube) {
+        n.object.rotation.x -= 0.02
+        n.object.rotation.y -= 0.02
       }
     })
 
     this.animateName()
+    this.positionHint()
     this.animateDolphins()
     this.animteRotatingCube()
     this.jetGameLogic()
-    this.animateNameCircularLightUp()
 
     this.orbitControls.update()
     // this.spotLightHelper.update()
@@ -1072,6 +1117,8 @@ export default class Viewport {
   dispose() {
     this._disposed = true
     cancelAnimationFrame(this._rafId)
+    this.clearContentCleanups()
+    this.hint?.element.remove()
     this.clearActiveIntervals()
     this.clearActiveTimeouts()
 

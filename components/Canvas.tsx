@@ -3,8 +3,15 @@ import { createStandardText } from 'engine/objects/StandardText'
 import { TransparentBox } from 'engine/objects/TransparentBox'
 import { useEffect, useRef } from 'react'
 import { useMediaQuery } from 'react-responsive'
-import { DoubleSide, Mesh, MeshBasicMaterial, PlaneGeometry } from 'three'
+import {
+  DoubleSide,
+  Mesh,
+  MeshBasicMaterial,
+  PlaneGeometry,
+  Vector3
+} from 'three'
 import Stats from 'three/examples/jsm/libs/stats.module'
+import '../styles/name-hint.css'
 import { loadFont } from '../engine/loaders/font-loader'
 import { loadObj } from '../engine/loaders/OBJLoader'
 import { createBreakingText } from '../engine/objects/BreakingText'
@@ -40,7 +47,7 @@ export const Canvas = () => {
     const labels = [
       'Myself',
       'Edu',
-      'Traits',
+      'Ask',
       'Techs',
       '',
       'Game',
@@ -49,7 +56,11 @@ export const Canvas = () => {
     ]
     for (let i = 0; i < nameSeg.length; i++) {
       const seg = createBreakingText(font, frag, vert, nameSeg[i])
-      seg.object.userData = { isName: true, nameIndex: i }
+      seg.object.userData = {
+        isName: true,
+        nameIndex: i,
+        hasTab: labels[i] !== ''
+      }
 
       const x = start + gap * (i > 5 ? i + 1 : i)
       const y = height
@@ -57,15 +68,31 @@ export const Canvas = () => {
       seg.object.scale.set(nameScale, nameScale, nameScale)
       seg.object.add(TransparentBox(seg))
 
-      const label = createStandardText(font, labels[i], { size: 5 })
-      label.object.position.set(0, 15, 0)
-      //@ts-ignore
-      label.object.material.transparent = true
+      // Every label shows now, so they're smaller and L and I's lean apart
+      const label = createStandardText(font, labels[i], { size: 4.5 })
+      label.object.position.set(i === 6 ? -2.5 : i === 7 ? 2.5 : 0, 15, 0)
+      const labelMaterial = label.object.material as MeshBasicMaterial
+      labelMaterial.transparent = true
+      labelMaterial.opacity = 0
       label.object.userData = { isNameLabelTag: true }
 
       seg.object.add(label.object)
       names.push(seg)
     }
+
+    // Until the first letter click, a neon sign above the name says what to
+    // do. It's HTML because the scene's edge filter would flatten a 3D glow.
+    const verb = matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click'
+    const hint = document.createElement('div')
+    hint.className = 'name-hint'
+    hint.textContent = `${verb} a letter to explore`
+    document.body.append(hint)
+    const first = names[0].object.position.x
+    const last = names[names.length - 1].object.position.x
+    gl.setHint(
+      hint,
+      new Vector3((first + last) / 2, height + 28 * nameScale, 0)
+    )
 
     gl.add(...names)
   }

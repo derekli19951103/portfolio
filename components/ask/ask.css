@@ -1,0 +1,181 @@
+/* Chat panel shown over the board on the Ask tab */
+.ask-panel {
+  position: fixed;
+  top: 34vh;
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(560px, calc(100vw - 32px));
+  max-height: 56vh;
+  padding: 14px 16px 12px;
+  color: #fff;
+  font-size: 15px;
+  line-height: 1.45;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+  box-shadow: 0 0 24px rgba(255, 255, 255, 0.12);
+  transform: translateX(-50%);
+  animation: ask-in 500ms ease-out 250ms both;
+}
+
+@keyframes ask-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.ask-log {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 48px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.ask-msg {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.ask-msg--assistant {
+  align-self: flex-start;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.35);
+}
+
+.ask-msg--user {
+  align-self: flex-end;
+  max-width: 85%;
+  padding: 6px 10px;
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 8px;
+}
+
+.ask-msg--pending::after {
+  content: '▍';
+  animation: ask-blink 1s steps(2) infinite;
+}
+
+@keyframes ask-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+.ask-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ask-chip,
+.ask-load {
+  padding: 4px 10px;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.ask-chip:hover,
+.ask-chip:focus-visible,
+.ask-load:hover,
+.ask-load:focus-visible {
+  border-color: #fff;
+  outline: none;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
+}
+
+.ask-form {
+  display: flex;
+  gap: 8px;
+}
+
+.ask-input {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 2px;
+  color: #fff;
+  font: inherit;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 0;
+  outline: none;
+}
+
+.ask-input:focus {
+  border-bottom-color: #fff;
+}
+
+.ask-input::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.ask-send {
+  padding: 6px 14px;
+  color: #000;
+  font: inherit;
+  font-weight: 600;
+  background: #fff;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.ask-send:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ask-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+}
+
+.ask-status a {
+  color: inherit;
+}
+
+.ask-progress {
+  flex-basis: 100%;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.ask-progress > span {
+  display: block;
+  height: 100%;
+  background: #fff;
+  transition: width 200ms;
+}
+
+@media (max-width: 600px) {
+  .ask-panel {
+    top: 38vh;
+    max-height: 54vh;
+    font-size: 14px;
+  }
+
+  /* iOS zooms into inputs under 16px */
+  .ask-input {
+    font-size: 16px;
+  }
+}
