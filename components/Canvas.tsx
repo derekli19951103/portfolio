@@ -3,18 +3,12 @@ import { createStandardText } from 'engine/objects/StandardText'
 import { TransparentBox } from 'engine/objects/TransparentBox'
 import { useEffect, useRef } from 'react'
 import { useMediaQuery } from 'react-responsive'
-import {
-  DoubleSide,
-  Mesh,
-  MeshBasicMaterial,
-  PlaneGeometry,
-  Vector3
-} from 'three'
+import { DoubleSide, Mesh, MeshBasicMaterial, PlaneGeometry } from 'three'
 import Stats from 'three/examples/jsm/libs/stats.module'
-import '../styles/name-hint.css'
 import { loadFont } from '../engine/loaders/font-loader'
 import { loadObj } from '../engine/loaders/OBJLoader'
 import { createBreakingText } from '../engine/objects/BreakingText'
+import { createLightWaveText } from '../engine/objects/LightWaveText'
 import ThreeDNode from '../engine/ThreeDNode'
 import { getRandomPointInInterval } from '../engine/utils/math'
 import Viewport from '../engine/Viewport'
@@ -80,21 +74,21 @@ export const Canvas = () => {
       names.push(seg)
     }
 
-    // Until the first letter click, a neon sign above the name says what to
-    // do. It's HTML because the scene's edge filter would flatten a 3D glow.
-    const verb = matchMedia('(pointer: coarse)').matches ? 'Tap' : 'Click'
-    const hint = document.createElement('div')
-    hint.className = 'name-hint'
-    hint.textContent = `${verb} a letter to explore`
-    document.body.append(hint)
+    // Until the first letter click, a line above the name says what to do,
+    // with a wave of light running through it. It fades in from dark.
+    const verb = matchMedia('(pointer: coarse)').matches ? 'TAP' : 'CLICK'
+    const hint = createLightWaveText(font, `${verb} A LETTER TO EXPLORE`, {
+      size: 5,
+      bandWidth: 4,
+      lift: 1.1
+    })
     const first = names[0].object.position.x
     const last = names[names.length - 1].object.position.x
-    gl.setHint(
-      hint,
-      new Vector3((first + last) / 2, height + 28 * nameScale, 0)
-    )
+    hint.object.position.set((first + last) / 2, height + 28 * nameScale, 0)
+    hint.object.scale.setScalar(nameScale)
+    hint.object.userData = { isHint: true }
 
-    gl.add(...names)
+    gl.add(...names, hint)
   }
 
   const addPlane = (gl: Viewport) => {

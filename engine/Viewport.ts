@@ -23,7 +23,6 @@ import {
   Mesh,
   MeshBasicMaterial,
   DoubleSide,
-  Object3D,
   PerspectiveCamera,
   PlaneGeometry,
   Points,
@@ -59,6 +58,11 @@ import { addToolsContent } from '../components/three/tools-section'
 import { OrbitControls } from '../engine/three/OrbitControls'
 import ThreeDNode from './ThreeDNode'
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry'
+
+// One slow breath of the "click a letter" hint, in and out, and how long the
+// wave of light takes to cross it during each breath
+const HINT_BREATH_MS = 3200
+const HINT_WAVE_MS = 1400
 
 export default class Viewport {
   scene: Scene
@@ -103,8 +107,6 @@ export default class Viewport {
   raised = false
   // Set by the first letter click; the "click a letter" hint then fades out
   hintDismissed = false
-  // The hint's HTML element and the point above the name it sits over
-  private hint?: { element: HTMLElement; anchor: Vector3 }
 
   selectedTabIndex?: number
   displayContent = new Group()
@@ -115,6 +117,8 @@ export default class Viewport {
   activeTimeouts: number[] = []
   // Teardown for content that lives outside the scene, like HTML overlays
   contentCleanups: (() => void)[] = []
+  // Per-frame work for the open tab, run after hover detection
+  contentFrames: (() => void)[] = []
   private _rafId: number = 0
   private _disposed: boolean = false
 
@@ -459,6 +463,11 @@ export default class Viewport {
     this.clearActiveIntervals()
     this.clearActiveTimeouts()
     this.clearContentCleanups()
+    this.contentFrames = []
+  }
+
+  addContentFrame(frame: () => void) {
+    this.contentFrames.push(frame)
   }
 
   addContentCleanup(cleanup: () => void) {
@@ -601,7 +610,7 @@ export default class Viewport {
       : tabs[Math.floor(Date.now() / 2000) % tabs.length]
 
     this.nodes.forEach((n) => {
-      const { isName, nameIndex } = n.object.userData
+      const { isName, isHint, nameIndex } = n.object.userData
       if (isName) {
         // Only the open tab's letter stays lit, however many were clicked
         const open = this.raised && nameIndex === this.selectedTabIndex
@@ -619,33 +628,34 @@ export default class Viewport {
           const target = active ? 1 : n === shimmering ? 0.35 : 0.12
           label.material.opacity += (target - label.material.opacity) * 0.15
         }
+      } else if (isHint) {
+        this.animateHint(n)
       }
     })
   }
 
-  setHint(element: HTMLElement, anchor: Vector3) {
-    // The name can finish loading after a dev remount has disposed us
-    if (this._disposed) {
-      element.remove()
-      return
-    }
-    this.hint = { element, anchor }
-  }
-
-  // Keeps the hint over its spot as the camera moves, until a letter click
-  positionHint() {
-    if (!this.hint) return
-    const { element, anchor } = this.hint
-    if (this.hintDismissed) {
-      element.classList.add('name-hint--off')
-      return
-    }
-    const point = this._tempVec3.copy(anchor).project(this.camera)
-    const x = ((point.x + 1) / 2) * this.width
-    const y = ((1 - point.y) / 2) * this.height
-    element.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`
-    // Behind the camera after an orbit: hide rather than mirror it
-    element.style.visibility = point.z < 1 ? '' : 'hidden'
+  // The "click a letter" hint breathes dimly, and once per breath a wave of
+  // light runs across it left to right, lifting each letter as it passes.
+  // The crest runs brighter than white, which the bloom pass haloes. After
+  // the first letter click it fades out for good.
+  animateHint(hint: ThreeDNode) {
+    const now = Date.now()
+    const breath = 0.5 - 0.5 * Math.cos((now / HINT_BREATH_MS) * Math.PI * 2)
+    const { uniforms } = hint.object.material as ShaderMaterial
+    const halfWidth = hint.object.geometry.boundingBox!.max.x
+    const band = uniforms.bandWidth.value
+    // Crosses in the first part of each breath, then rests off the right end
+    const t = Math.min((now % HINT_BREATH_MS) / HINT_WAVE_MS, 1)
+    const eased = t * t * (3 - 2 * t)
+    uniforms.sweep.value =
+      -halfWidth - 2 * band + eased * (2 * halfWidth + 4 * band)
+    // Kept low: the edge filter turns anything over about 0.3 full white, and
+    // the resting letters should read as grey against the crest
+    uniforms.base.value = 0.05 + breath * 0.1
+    uniforms.peak.value = 1.3
+    const fadeTarget = this.hintDismissed ? 0 : 1
+    uniforms.fade.value += (fadeTarget - uniforms.fade.value) * 0.08
+    hint.object.visible = !this.hintDismissed || uniforms.fade.value > 0.01
   }
 
   animateDolphins() {
@@ -782,6 +792,8 @@ export default class Viewport {
         addProfileText(this)
         break
       case 1:
+        // The logo tears around the cursor instead of being spotlit
+        this.mouseSpotLight.visible = false
         addEduContent(this)
         break
       case 2:
@@ -817,10 +829,6 @@ export default class Viewport {
         this.camera.position.copy(this.facingCameraPos)
         addGameOver(this)
     }
-  }
-
-  setMouseSpotLightTarget(_object: Object3D) {
-    // Target follows mouse position via onPointerMove, no reassignment needed
   }
 
   jetGameLogic() {
@@ -1092,6 +1100,7 @@ export default class Viewport {
 
     this.nodes.forEach((n) => n.update())
     this.updateHover()
+    this.contentFrames.forEach((frame) => frame())
     this.nodes.forEach((n) => {
       if (n.isRayCasted && n.object.userData.isRotatingCube) {
         n.object.rotation.x -= 0.02
@@ -1100,7 +1109,6 @@ export default class Viewport {
     })
 
     this.animateName()
-    this.positionHint()
     this.animateDolphins()
     this.animteRotatingCube()
     this.jetGameLogic()
@@ -1118,7 +1126,6 @@ export default class Viewport {
     this._disposed = true
     cancelAnimationFrame(this._rafId)
     this.clearContentCleanups()
-    this.hint?.element.remove()
     this.clearActiveIntervals()
     this.clearActiveTimeouts()
 
