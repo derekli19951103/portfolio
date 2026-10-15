@@ -48,12 +48,17 @@ export const addContactContent = async (viewport: Viewport) => {
   const nodes = links.flatMap(({ url, icon, y }, row) => {
     const delay = row * 180
 
-    // The icon flips in like a card
+    // The icon flips in like a card. It glows by itself, since this tab has
+    // no spotlight and the ambient light alone leaves it dim.
+    const texture = new TextureLoader().load(icon)
     const pic = new ThreeDNode(
       new Mesh(
         new PlaneGeometry(40, 40),
         new MeshStandardMaterial({
-          map: new TextureLoader().load(icon),
+          map: texture,
+          emissive: 0xffffff,
+          emissiveMap: texture,
+          emissiveIntensity: 1,
           blending: AdditiveBlending
         })
       )

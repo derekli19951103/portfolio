@@ -10,7 +10,6 @@ import { addAskContent } from 'components/three/ask-section'
 import { addResumeContent } from 'components/three/resume-section'
 import {
   ACESFilmicToneMapping,
-  AdditiveBlending,
   AmbientLight,
   BufferAttribute,
   BufferGeometry,
@@ -46,9 +45,6 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
-import { Line2 } from 'three/examples/jsm/lines/Line2.js'
-import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js'
-import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js'
 import { LuminosityShader } from 'three/examples/jsm/shaders/LuminosityShader.js'
 import { SobelOperatorShader } from 'three/examples/jsm/shaders/SobelOperatorShader.js'
 import { PLANE_HEIGHT, PLANE_WIDTH } from 'constant'
@@ -57,6 +53,7 @@ import { addProfileText } from '../components/three/profile-section'
 import { addToolsContent } from '../components/three/tools-section'
 import { OrbitControls } from '../engine/three/OrbitControls'
 import ThreeDNode from './ThreeDNode'
+import { CyberTrail } from './objects/CyberTrail'
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry'
 
 // One slow breath of the "click a letter" hint, in and out, and how long the
@@ -89,10 +86,12 @@ export default class Viewport {
   pointer: Vector2 = new Vector2()
   mouseWorldPos: Vector3 = new Vector3()
   private _tempVec3: Vector3 = new Vector3()
-  lightTrail: Line2
-  trailPositions: number[] = []
-  trailColors: number[] = []
-  trailLength: number = 60
+  // The cursor's neon trail. It lives in its own scene, drawn after the
+  // grayscale and edge filters so it keeps its colour.
+  lightTrail: Group
+  private cursorTrail: CyberTrail
+  private overlay = new Scene()
+  private pointerMoved = false
   mouseSpotLight: SpotLight
   spotLightHelper: SpotLightHelper
 
@@ -180,6 +179,10 @@ export default class Viewport {
       this.mouseSpotLight.position.set(pos.x, pos.y, pos.z + mouseLightZHeight)
       this.mouseSpotLight.target.position.set(pos.x, pos.y, pos.z)
       this.mouseWorldPos.set(pos.x, pos.y, pos.z)
+      if (!this.pointerMoved) {
+        this.pointerMoved = true
+        this.cursorTrail.reset(this.mouseWorldPos)
+      }
 
       //fighter jet
       const jet = this.nodes.find((n) => n.object.userData.isFightJet)
@@ -295,27 +298,13 @@ export default class Viewport {
       this.ripplePool.push(ring)
     }
 
-    // Cursor light trail (Line2 with per-vertex color for fade)
-    for (let i = 0; i < this.trailLength; i++) {
-      this.trailPositions.push(0, -9999, 0)
-      const t = i / (this.trailLength - 1)
-      this.trailColors.push(1 - t, 1 - t * 0.4, 1)
-    }
-    const trailLineGeo = new LineGeometry()
-    trailLineGeo.setPositions(this.trailPositions)
-    trailLineGeo.setColors(this.trailColors)
-    const trailLineMat = new LineMaterial({
-      linewidth: 4,
-      vertexColors: true,
-      transparent: true,
-      opacity: 0.9,
-      depthWrite: false,
-      blending: AdditiveBlending
-    })
-    trailLineMat.resolution.set(this.width, this.height)
-    this.lightTrail = new Line2(trailLineGeo, trailLineMat)
-    this.lightTrail.layers.set(1)
-    this.scene.add(this.lightTrail)
+    this.cursorTrail = new CyberTrail(
+      this.width,
+      this.height,
+      this.renderer.getPixelRatio()
+    )
+    this.lightTrail = this.cursorTrail.object
+    this.overlay.add(this.lightTrail)
 
     this.composer = new EffectComposer(this.renderer)
     const renderPass = new RenderPass(this.scene, this.camera)
@@ -355,6 +344,7 @@ export default class Viewport {
         const dpr = Math.min(window.devicePixelRatio, 2)
         this.effectSobel.uniforms['resolution'].value.x = this.width * dpr
         this.effectSobel.uniforms['resolution'].value.y = this.height * dpr
+        this.cursorTrail.setResolution(this.width, this.height)
       }
     })
 
@@ -749,19 +739,8 @@ export default class Viewport {
   }
 
   animateLightTrail() {
-    // Shift all positions back by one slot (tail falls off)
-    for (let i = this.trailLength - 1; i > 0; i--) {
-      this.trailPositions[i * 3] = this.trailPositions[(i - 1) * 3]
-      this.trailPositions[i * 3 + 1] = this.trailPositions[(i - 1) * 3 + 1]
-      this.trailPositions[i * 3 + 2] = this.trailPositions[(i - 1) * 3 + 2]
-    }
-    // Head = current cursor
-    this.trailPositions[0] = this.mouseWorldPos.x
-    this.trailPositions[1] = this.mouseWorldPos.y
-    this.trailPositions[2] = this.mouseWorldPos.z + 1
-
-    const geo = this.lightTrail.geometry as LineGeometry
-    geo.setPositions(this.trailPositions)
+    // Nothing to trail until the cursor has appeared over the canvas
+    if (this.pointerMoved) this.cursorTrail.update(this.mouseWorldPos)
   }
 
   addToActiveIntervals(...numbers: number[]) {
@@ -1117,6 +1096,11 @@ export default class Viewport {
     // this.spotLightHelper.update()
 
     this.composer.render()
+    // The cursor trail goes on top, after the filters, so it keeps its colour
+    this.renderer.autoClear = false
+    this.renderer.clearDepth()
+    this.renderer.render(this.overlay, this.camera)
+    this.renderer.autoClear = true
     if (!this._disposed) {
       this._rafId = requestAnimationFrame(this.render.bind(this))
     }
@@ -1129,16 +1113,18 @@ export default class Viewport {
     this.clearActiveIntervals()
     this.clearActiveTimeouts()
 
-    this.scene.traverse((obj) => {
-      if (obj instanceof Mesh) {
-        obj.geometry?.dispose()
-        if (Array.isArray(obj.material)) {
-          obj.material.forEach((m) => m.dispose())
-        } else {
-          obj.material?.dispose()
+    ;[this.scene, this.overlay].forEach((scene) =>
+      scene.traverse((obj) => {
+        if (obj instanceof Mesh || obj instanceof Points) {
+          obj.geometry?.dispose()
+          if (Array.isArray(obj.material)) {
+            obj.material.forEach((m) => m.dispose())
+          } else {
+            obj.material?.dispose()
+          }
         }
-      }
-    })
+      })
+    )
 
     this.composer.dispose()
     this.renderer.dispose()
