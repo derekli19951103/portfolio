@@ -3,8 +3,7 @@ import { addContactContent } from 'components/three/contact-section'
 import {
   addFighterJetGame,
   addGameCountdown,
-  addGameOver,
-  spawnExplosion
+  addGameOver
 } from 'components/three/fighter-jet'
 import { addAskContent } from 'components/three/ask-section'
 import { addResumeContent } from 'components/three/resume-section'
@@ -15,10 +14,10 @@ import {
   BufferGeometry,
   CanvasTexture,
   CubeTextureLoader,
-  ExtrudeGeometry,
   Float32BufferAttribute,
   Group,
   Material,
+  MathUtils,
   Mesh,
   MeshBasicMaterial,
   DoubleSide,
@@ -47,7 +46,7 @@ import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import { LuminosityShader } from 'three/examples/jsm/shaders/LuminosityShader.js'
 import { SobelOperatorShader } from 'three/examples/jsm/shaders/SobelOperatorShader.js'
-import { PLANE_HEIGHT, PLANE_WIDTH } from 'constant'
+import { PLANE_HEIGHT } from 'constant'
 import { addEduContent } from '../components/three/education-section'
 import { addProfileText } from '../components/three/profile-section'
 import { addToolsContent } from '../components/three/tools-section'
@@ -61,13 +60,71 @@ import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry'
 const HINT_BREATH_MS = 3200
 const HINT_WAVE_MS = 1400
 
+// The name sits on the water on the landing view, and becomes a row of tabs
+// above the board once one opens
+const NAME_Y = 15
+const NAV_Y = PLANE_HEIGHT + 15
+const NAV_SCALE = 0.91
+// Share of the screen's width the name may fill
+const NAME_FILL = 0.94
+// Below this the tabs are squeezed enough that their labels would collide
+const COMPACT_NAV = 0.8
+
+// Each letter's place in the name, with a blank slot between YUFENG and LI
+const nameSlot = (i: number) => (i > 5 ? i + 1 : i)
+
+// Where a letter of the name sits, how big it is, and its label above it
+type NamePose = {
+  x: number
+  y: number
+  scale: number
+  labelScale: number
+  labelX: number
+}
+
+const nameLabel = (n: ThreeDNode) =>
+  n.object.children.find((c) => c.userData.isNameLabelTag) as
+    Mesh<TextGeometry, Material> | undefined
+
+const readPose = (n: ThreeDNode): NamePose => {
+  const label = nameLabel(n)
+  return {
+    x: n.object.position.x,
+    y: n.object.position.y,
+    scale: n.object.scale.x,
+    labelScale: label?.scale.x ?? 1,
+    labelX: label?.position.x ?? 0
+  }
+}
+
+const setPose = (n: ThreeDNode, pose: NamePose) => {
+  n.object.position.set(pose.x, pose.y, 0)
+  n.object.scale.setScalar(pose.scale)
+  const label = nameLabel(n)
+  if (label) {
+    label.scale.setScalar(pose.labelScale)
+    label.position.x = pose.labelX
+  }
+}
+
+const mixPose = (from: NamePose, to: NamePose, t: number): NamePose => ({
+  x: MathUtils.lerp(from.x, to.x, t),
+  y: MathUtils.lerp(from.y, to.y, t),
+  scale: MathUtils.lerp(from.scale, to.scale, t),
+  labelScale: MathUtils.lerp(from.labelScale, to.labelScale, t),
+  labelX: MathUtils.lerp(from.labelX, to.labelX, t)
+})
+
 export default class Viewport {
   scene: Scene
   renderer: WebGLRenderer
   camera: PerspectiveCamera
 
-  originalCameraPos = new Vector3(-70, 30, 250)
-  facingCameraPos = new Vector3(0, PLANE_HEIGHT / 2, 220)
+  // Set for the screen's shape by setCameraPositions
+  originalCameraPos = new Vector3()
+  facingCameraPos = new Vector3()
+  // A portrait screen, which sees the scene from further back
+  narrow = false
 
   water: Water
 
@@ -85,7 +142,10 @@ export default class Viewport {
   raycaster: Raycaster = new Raycaster()
   pointer: Vector2 = new Vector2()
   mouseWorldPos: Vector3 = new Vector3()
-  private _tempVec3: Vector3 = new Vector3()
+  // The cursor away from anything clickable; the game hides it, since there
+  // the jet is the cursor
+  idleCursor = ''
+  private boardRay = new Vector3()
   // The cursor's neon trail. It lives in its own scene, drawn after the
   // grayscale and edge filters so it keeps its colour.
   lightTrail: Group
@@ -104,10 +164,14 @@ export default class Viewport {
   plane?: ThreeDNode
 
   raised = false
+  // While the board rises or sinks
+  moving = false
   // Set by the first letter click; the "click a letter" hint then fades out
   hintDismissed = false
 
   selectedTabIndex?: number
+  // What the board shows: a tab's index, or 'lose' after the game
+  shownContent?: number | string
   displayContent = new Group()
 
   tweenGroup: TweenGroup = new TweenGroup()
@@ -118,8 +182,16 @@ export default class Viewport {
   contentCleanups: (() => void)[] = []
   // Per-frame work for the open tab, run after hover detection
   contentFrames: (() => void)[] = []
+  // Bumped whenever the content clears, so content still loading can tell
+  // it's been replaced
+  contentVersion = 0
   private _rafId: number = 0
   private _disposed: boolean = false
+  // Removes every listener the viewport added, so a disposed one goes quiet
+  private listeners = new AbortController()
+  // The width the open tab was laid out for, and the pending re-layout
+  private laidOutWidth: number
+  private relayoutTimeout = 0
 
   constructor(props: {
     canvas: HTMLCanvasElement
@@ -151,9 +223,14 @@ export default class Viewport {
 
     this.renderer.setSize(this.width, this.height)
 
+    this.narrow = this.width < this.height
+    this.setCameraPositions()
+    this.laidOutWidth = this.width
+
     this.camera = new PerspectiveCamera(55, this.width / this.height, 1, 20000)
 
     this.camera.position.copy(this.originalCameraPos)
+    const { signal } = this.listeners
 
     this.scene.add(this.camera)
 
@@ -171,40 +248,33 @@ export default class Viewport {
       this.pointer.x = (x / this.width) * 2 - 1
       this.pointer.y = -(y / this.height) * 2 + 1
 
-      this._tempVec3.set(this.pointer.x, this.pointer.y, 0.5)
-      this._tempVec3.unproject(this.camera)
-      const dir = this._tempVec3.sub(this.camera.position).normalize()
-      const distance = -this.camera.position.z / dir.z
-      const pos = this.camera.position.clone().add(dir.multiplyScalar(distance))
+      const pos = this.toBoard(x, y, this.mouseWorldPos)
       this.mouseSpotLight.position.set(pos.x, pos.y, pos.z + mouseLightZHeight)
       this.mouseSpotLight.target.position.set(pos.x, pos.y, pos.z)
-      this.mouseWorldPos.set(pos.x, pos.y, pos.z)
       if (!this.pointerMoved) {
         this.pointerMoved = true
         this.cursorTrail.reset(this.mouseWorldPos)
       }
-
-      //fighter jet
-      const jet = this.nodes.find((n) => n.object.userData.isFightJet)
-      if (jet) {
-        const size = new Vector3()
-        jet.bbox.getSize(size)
-        if (pos.y >= size.y / 2) {
-          jet?.object.position.set(pos.x, pos.y, pos.z)
-        }
-      }
     }
 
-    canvas.addEventListener('mousemove', (e) => {
-      onPointerMove(e.clientX, e.clientY)
-    })
+    canvas.addEventListener(
+      'mousemove',
+      (e) => {
+        onPointerMove(e.clientX, e.clientY)
+      },
+      { signal }
+    )
 
-    canvas.addEventListener('touchmove', (e) => {
-      e.preventDefault()
-      if (e.touches.length > 0) {
-        onPointerMove(e.touches[0].clientX, e.touches[0].clientY)
-      }
-    })
+    canvas.addEventListener(
+      'touchmove',
+      (e) => {
+        e.preventDefault()
+        if (e.touches.length > 0) {
+          onPointerMove(e.touches[0].clientX, e.touches[0].clientY)
+        }
+      },
+      { signal }
+    )
 
     this.orbitControls = new OrbitControls(this.camera, canvas)
     this.orbitControls.listenToKeyEvents(canvas)
@@ -330,52 +400,65 @@ export default class Viewport {
     this.composer.addPass(this.effectSobel)
     this.composer.addPass(bloomPass)
 
-    window.addEventListener('resize', () => {
-      if (!this.fixed) {
-        this.width = window.innerWidth
-        this.height = window.innerHeight
+    window.addEventListener(
+      'resize',
+      () => {
+        if (!this.fixed) {
+          this.width = window.innerWidth
+          this.height = window.innerHeight
 
-        this.camera.aspect = this.width / this.height
-        this.camera.updateProjectionMatrix()
+          this.camera.aspect = this.width / this.height
+          this.camera.updateProjectionMatrix()
 
-        this.renderer.setSize(this.width, this.height)
-        this.composer.setSize(this.width, this.height)
+          this.renderer.setSize(this.width, this.height)
+          this.composer.setSize(this.width, this.height)
 
-        const dpr = Math.min(window.devicePixelRatio, 2)
-        this.effectSobel.uniforms['resolution'].value.x = this.width * dpr
-        this.effectSobel.uniforms['resolution'].value.y = this.height * dpr
-        this.cursorTrail.setResolution(this.width, this.height)
-      }
-    })
+          const dpr = Math.min(window.devicePixelRatio, 2)
+          this.effectSobel.uniforms['resolution'].value.x = this.width * dpr
+          this.effectSobel.uniforms['resolution'].value.y = this.height * dpr
+          this.cursorTrail.setResolution(this.width, this.height)
+          this.fitToScreen()
+        }
+      },
+      { signal }
+    )
 
-    canvas.addEventListener('click', (e) => {
-      e.preventDefault()
-      // Hit-test where the click landed: a tap has no hover beforehand
-      onPointerMove(e.clientX, e.clientY)
-      this.updateHover()
-      this.nodes.forEach((n) => {
-        if (n.isRayCasted) {
-          n.setSelected(!n.isSelected)
-          if (n.object.userData.isName) {
-            this.hintDismissed = true
-            const nameIndex = n.object.userData.nameIndex
+    canvas.addEventListener(
+      'click',
+      (e) => {
+        e.preventDefault()
+        // Hit-test where the click landed: a tap has no hover beforehand
+        onPointerMove(e.clientX, e.clientY)
+        this.updateHover()
+        this.nodes.forEach((n) => {
+          if (n.isRayCasted) {
+            n.setSelected(!n.isSelected)
+            if (n.object.userData.isName) {
+              this.hintDismissed = true
+              const nameIndex = n.object.userData.nameIndex
 
-            if (!this.raised) {
-              this.camera.position.copy(this.originalCameraPos)
-              this.raisingAnimations()
-            } else {
-              if (this.selectedTabIndex !== nameIndex) {
+              // While the board moves the tab is only remembered: a rising
+              // board opens it when it arrives
+              if (!this.raised && !this.moving) {
+                this.camera.position.copy(this.originalCameraPos)
+                this.raisingAnimations()
+              } else if (
+                this.raised &&
+                !this.moving &&
+                this.selectedTabIndex !== nameIndex
+              ) {
                 this.clearContentGroup()
 
                 this.switchContent(nameIndex)
               }
-            }
 
-            this.selectedTabIndex = nameIndex
+              this.selectedTabIndex = nameIndex
+            }
           }
-        }
-      })
-    })
+        })
+      },
+      { signal }
+    )
 
     const loweringActions = () => {
       this.nodes.forEach((n) => {
@@ -387,6 +470,7 @@ export default class Viewport {
         this.lowerAnimations()
 
         this.selectedTabIndex = undefined
+        this.shownContent = undefined
 
         this.clearContentGroup()
         this.lightTrail.visible = true
@@ -394,25 +478,199 @@ export default class Viewport {
       }
     }
 
-    canvas.addEventListener('contextmenu', (e) => {
-      e.preventDefault()
-      loweringActions()
-    })
+    canvas.addEventListener(
+      'contextmenu',
+      (e) => {
+        e.preventDefault()
+        loweringActions()
+      },
+      { signal }
+    )
 
     let tapedTwice = false
 
-    canvas.addEventListener('touchstart', (event) => {
-      if (!tapedTwice) {
-        tapedTwice = true
-        setTimeout(function () {
-          tapedTwice = false
-        }, 300)
-        return false
+    canvas.addEventListener(
+      'touchstart',
+      (event) => {
+        // Flying the jet means quick repeated touches, which mustn't end
+        // the game; a letter above leaves it instead
+        if (this.shownContent === 5) return
+        if (!tapedTwice) {
+          tapedTwice = true
+          setTimeout(function () {
+            tapedTwice = false
+          }, 300)
+          return false
+        }
+        event.preventDefault()
+        //action on double tap goes below
+        loweringActions()
+      },
+      { signal }
+    )
+  }
+
+  // Where a point on the screen lands on the board's plane (z = 0)
+  toBoard(x: number, y: number, target = new Vector3()) {
+    const dir = this.boardRay
+      .set((x / this.width) * 2 - 1, -(y / this.height) * 2 + 1, 0.5)
+      .unproject(this.camera)
+      .sub(this.camera.position)
+      .normalize()
+    const distance = -this.camera.position.z / dir.z
+    return target.copy(this.camera.position).addScaledVector(dir, distance)
+  }
+
+  // A portrait screen sees the scene straight on and from further back
+  private setCameraPositions() {
+    if (this.narrow) {
+      this.originalCameraPos.set(0, 30, 340)
+      this.facingCameraPos.set(0, PLANE_HEIGHT / 2, 280)
+    } else {
+      this.originalCameraPos.set(-70, 30, 250)
+      this.facingCameraPos.set(0, PLANE_HEIGHT / 2, 220)
+    }
+  }
+
+  // Keeps the scene fitted when the screen turns or resizes. The open tab
+  // lays itself out again once the width settles; a phone keyboard only
+  // changes the height, so it leaves the tab (and its input) alone.
+  private fitToScreen() {
+    const narrow = this.width < this.height
+    if (narrow !== this.narrow) {
+      this.narrow = narrow
+      this.setCameraPositions()
+      if (!this.moving) {
+        this.camera.position.copy(
+          this.raised ? this.facingCameraPos : this.originalCameraPos
+        )
       }
-      event.preventDefault()
-      //action on double tap goes below
-      loweringActions()
+    }
+    if (!this.moving) this.placeName()
+
+    if (this.width === this.laidOutWidth) return
+    window.clearTimeout(this.relayoutTimeout)
+    this.relayoutTimeout = window.setTimeout(() => {
+      this.laidOutWidth = this.width
+      // The Ask tab's chat is HTML that fits itself, and rebuilding it would
+      // drop the question being typed, and a phone's keyboard with it
+      const fitsItself = this.shownContent === 2
+      if (
+        this.raised &&
+        !this.moving &&
+        this.shownContent !== undefined &&
+        !fitsItself
+      ) {
+        this.clearContentGroup()
+        this.switchContent(this.shownContent)
+      }
+    }, 250)
+  }
+
+  // Half the width the camera sees at the board, from this far away
+  halfWidthAt(distance: number) {
+    const { fov, aspect } = this.camera
+    return distance * Math.tan(MathUtils.degToRad(fov / 2)) * aspect
+  }
+
+  private nameLetters() {
+    return this.nodes
+      .filter((n) => n.object.userData.isName)
+      .sort((a, b) => a.object.userData.nameIndex - b.object.userData.nameIndex)
+  }
+
+  // Spread along the water under the hint. A narrow screen sees it straight
+  // on, so it's centred there, packed closer, and shrunk if it still won't fit.
+  private landingPoses(letters: ThreeDNode[]): NamePose[] {
+    const pose = (x: number, scale: number, n: ThreeDNode) => ({
+      x,
+      y: NAME_Y,
+      scale,
+      labelScale: 1,
+      labelX: nameLabel(n)?.userData.restX ?? 0
     })
+    if (!this.narrow) {
+      return letters.map((n, i) => pose(-55 + 20 * nameSlot(i), 1, n))
+    }
+
+    const gap = 15
+    const scale = 0.7
+    const middle = nameSlot(letters.length - 1) / 2
+    const halfWidth =
+      middle * gap +
+      (Math.max(letters[0].size.x, letters[letters.length - 1].size.x) / 2) *
+        scale
+    const room = NAME_FILL * this.halfWidthAt(this.originalCameraPos.z)
+    const fit = Math.min(1, room / halfWidth)
+    return letters.map((n, i) =>
+      pose((nameSlot(i) - middle) * gap * fit, scale * fit, n)
+    )
+  }
+
+  // A row of tabs above the board, up and to the left where there's room.
+  // On a narrower screen it slides right only as far as it must to stay on
+  // screen, then shrinks to fit. Squeezed tabs keep their labels full size,
+  // kept on screen; animateName shows only the lit one so they don't collide.
+  private navPoses(letters: ThreeDNode[]): NamePose[] {
+    const last = letters.length - 1
+    const xs = letters.map((_, i) => -175 + 20 * nameSlot(i) + (100 / 14) * i)
+    const left = xs[0] - (letters[0].size.x / 2) * NAV_SCALE
+    const right = xs[last] + (letters[last].size.x / 2) * NAV_SCALE
+    const width = right - left
+    const centre = (left + right) / 2
+
+    const room = NAME_FILL * this.halfWidthAt(this.facingCameraPos.z)
+    const fit = Math.min(1, (2 * room) / width)
+    const target =
+      fit < 1 ? 0 : MathUtils.clamp(centre, -room + width / 2, room - width / 2)
+    const compact = fit < COMPACT_NAV
+
+    return letters.map((n, i) => {
+      const x = target + (xs[i] - centre) * fit
+      const scale = NAV_SCALE * fit
+      const label = nameLabel(n)
+      const restX = label?.userData.restX ?? 0
+      if (!compact || !label) {
+        return { x, y: NAV_Y, scale, labelScale: 1, labelX: restX }
+      }
+      const labelScale = 1 / fit
+      // An empty label has an empty (inverted) bounding box
+      const halfLabel =
+        Math.max(0, label.geometry.boundingBox?.max.x ?? 0) * NAV_SCALE
+      const labelCentre = MathUtils.clamp(
+        x + restX * scale,
+        -room + halfLabel,
+        room - halfLabel
+      )
+      return {
+        x,
+        y: NAV_Y,
+        scale,
+        labelScale,
+        labelX: (labelCentre - x) / scale
+      }
+    })
+  }
+
+  // Puts the name where it rests now, and the hint above its landing spot
+  placeName() {
+    const letters = this.nameLetters()
+    if (!letters.length) return
+    const landing = this.landingPoses(letters)
+    const poses = this.raised ? this.navPoses(letters) : landing
+    letters.forEach((n, i) => setPose(n, poses[i]))
+
+    const hint = this.nodes.find((n) => n.object.userData.isHint)
+    if (hint) {
+      const first = landing[0]
+      const last = landing[landing.length - 1]
+      hint.object.position.set(
+        (first.x + last.x) / 2,
+        NAME_Y + 28 * first.scale,
+        0
+      )
+      hint.object.scale.setScalar(first.scale)
+    }
   }
 
   add(...nodes: ThreeDNode[]) {
@@ -450,10 +708,13 @@ export default class Viewport {
     })
     this.nodes = this.nodes.filter((n) => !uuids.includes(n.object.uuid))
     this.displayContent.clear()
+    // Content may shake the whole group; the next tab starts still
+    this.displayContent.position.set(0, 0, 0)
     this.clearActiveIntervals()
     this.clearActiveTimeouts()
     this.clearContentCleanups()
     this.contentFrames = []
+    this.contentVersion++
   }
 
   addContentFrame(frame: () => void) {
@@ -478,13 +739,9 @@ export default class Viewport {
     if (this.plane) {
       const planeHeight = this.plane.size.y
 
-      const origPos: { [key: number]: Vector3 } = {}
-
-      this.nodes.forEach((n) => {
-        if (n.object.userData.isName) {
-          origPos[n.object.userData.nameIndex] = n.object.position.clone()
-        }
-      })
+      const letters = this.nameLetters()
+      const from = letters.map(readPose)
+      this.moving = true
 
       new Tween({ height: planeHeight / 2 }, this.tweenGroup)
         .to({ height: -planeHeight / 2 - 0.1 })
@@ -493,21 +750,11 @@ export default class Viewport {
           this.plane!.object.position.y = height
           this.orbitControls.enableRotate = false
 
-          this.nodes.forEach((n) => {
-            const userData = n.object.userData
-            if (userData.isName) {
-              n.object.position.y = height + planeHeight / 2 + 15
-              n.object.position.x =
-                origPos[userData.nameIndex].x -
-                (userData.nameIndex / 14 - 1.2) * 100 * elapsed
-              const shrink = 1 - 0.003
-              1
-              const newScale = n.object.scale.divideScalar(
-                Math.pow(shrink, elapsed)
-              )
-              n.object.scale.set(newScale.x, newScale.y, newScale.z)
-            }
-          })
+          // Worked out every frame, in case the screen turns mid-way
+          const to = this.landingPoses(letters)
+          letters.forEach((n, i) =>
+            setPose(n, mixPose(from[i], to[i], elapsed))
+          )
 
           this.camera.position.x =
             this.facingCameraPos.x +
@@ -524,6 +771,7 @@ export default class Viewport {
         })
         .onComplete(() => {
           this.raised = false
+          this.moving = false
           this.orbitControls.enableRotate = true
         })
         .start()
@@ -534,13 +782,9 @@ export default class Viewport {
     if (this.plane) {
       const planeHeight = this.plane.size.y
 
-      const origPos: { [key: number]: Vector3 } = {}
-
-      this.nodes.forEach((n) => {
-        if (n.object.userData.isName) {
-          origPos[n.object.userData.nameIndex] = n.object.position.clone()
-        }
-      })
+      const letters = this.nameLetters()
+      const from = letters.map(readPose)
+      this.moving = true
 
       new Tween({ height: -planeHeight / 2 - 1 }, this.tweenGroup)
         .to({ height: planeHeight / 2 })
@@ -549,20 +793,11 @@ export default class Viewport {
           this.plane!.object.position.y = height
           this.orbitControls.enableRotate = false
 
-          this.nodes.forEach((n) => {
-            const userData = n.object.userData
-            if (userData.isName) {
-              n.object.position.y = height + planeHeight / 2 + 15
-              n.object.position.x =
-                origPos[userData.nameIndex].x +
-                (userData.nameIndex / 14 - 1.2) * 100 * elapsed
-              const shrink = 1 - 0.003
-              const newScale = n.object.scale.multiplyScalar(
-                Math.pow(shrink, elapsed)
-              )
-              n.object.scale.set(newScale.x, newScale.y, newScale.z)
-            }
-          })
+          // Worked out every frame, in case the screen turns mid-way
+          const to = this.navPoses(letters)
+          letters.forEach((n, i) =>
+            setPose(n, mixPose(from[i], to[i], elapsed))
+          )
 
           this.camera.position.x =
             this.originalCameraPos.x +
@@ -579,6 +814,7 @@ export default class Viewport {
         })
         .onComplete(() => {
           this.raised = true
+          this.moving = false
           this.orbitControls.enableRotate = true
 
           this.switchContent(this.selectedTabIndex)
@@ -608,14 +844,15 @@ export default class Viewport {
         ;(n.object.material as ShaderMaterial).uniforms.amplitude.value =
           active || n === shimmering ? pulse : 0
 
-        const label = n.object.children.find(
-          (c) => c.userData.isNameLabelTag
-        ) as Mesh<TextGeometry, Material> | undefined
+        const label = nameLabel(n)
         if (label) {
           // Labels rest faintly so each letter shows where it leads, and
           // light up on hover and for the open tab. The edge filter turns
           // anything over about 0.3 opacity full white, so rest stays low.
-          const target = active ? 1 : n === shimmering ? 0.35 : 0.12
+          // Tabs squeezed onto a narrow screen keep their labels full size,
+          // which would collide, so there only the lit one shows.
+          const rest = label.scale.x > 1 ? 0 : 0.12
+          const target = active ? 1 : n === shimmering ? 0.35 : rest
           label.material.opacity += (target - label.material.opacity) * 0.15
         }
       } else if (isHint) {
@@ -762,6 +999,7 @@ export default class Viewport {
   }
 
   switchContent(nameIndex?: number | string) {
+    this.shownContent = nameIndex
     this.mouseSpotLight.visible = true
     this.orbitControls.enableRotate = true
     this.lightTrail.visible = true
@@ -810,240 +1048,6 @@ export default class Viewport {
     }
   }
 
-  jetGameLogic() {
-    const time = Date.now() * 0.001
-
-    // Pre-filter nodes into typed arrays to avoid O(n²) scans
-    const bullets: ThreeDNode[] = []
-    const words: ThreeDNode[] = []
-    const powerUps: ThreeDNode[] = []
-    const shields: ThreeDNode[] = []
-    const heartDrops: ThreeDNode[] = []
-    let jet: ThreeDNode | undefined
-
-    for (const n of this.nodes) {
-      const ud = n.object.userData
-      if (ud.isBullet) bullets.push(n)
-      else if (ud.isWord) {
-        words.push(n)
-        // Zigzag word animation
-        if (ud.isZigzag) {
-          n.object.position.x =
-            Math.sin(time * ud.zigzagSpeed) * ud.zigzagAmplitude + ud.originalX
-        }
-      } else if (ud.isPowerUp) powerUps.push(n)
-      else if (ud.isShield) shields.push(n)
-      else if (ud.isHeartDrop) heartDrops.push(n)
-      else if (ud.isFightJet) jet = n
-    }
-
-    // Bullet-word collisions
-    for (const b of bullets) {
-      for (const w of words) {
-        if (!w.object.userData.isWord) continue
-        const intersect = b.bbox.intersectsBox(w.bbox)
-        if (intersect) {
-          const hitPos = b.object.position.clone()
-          this.removeNodeFromContentGroup(b)
-          if (w.object.userData.impactCount < w.object.userData.armor) {
-            w.object.userData.impactCount += 1
-            ;(w.object.material as ShaderMaterial).uniforms.amplitude.value =
-              w.object.userData.impactCount / w.object.userData.armor
-            spawnExplosion(this, hitPos)
-            const origScale = w.object.scale.clone()
-            const origPos = w.object.position.clone()
-            new Tween({ s: 1 }, this.tweenGroup)
-              .to({ s: 1.5 }, 80)
-              .easing(Easing.Quadratic.Out)
-              .onUpdate(({ s }) => {
-                w.object.scale.set(
-                  origScale.x * s,
-                  origScale.y * s,
-                  origScale.z * s
-                )
-              })
-              .onComplete(() => {
-                new Tween({ s: 1.5 }, this.tweenGroup)
-                  .to({ s: 1 }, 120)
-                  .easing(Easing.Bounce.Out)
-                  .onUpdate(({ s }) => {
-                    w.object.scale.set(
-                      origScale.x * s,
-                      origScale.y * s,
-                      origScale.z * s
-                    )
-                  })
-                  .start()
-              })
-              .start()
-            let shakeCount = 0
-            const shakeInterval = window.setInterval(() => {
-              w.object.position.x = origPos.x + (Math.random() - 0.5) * 8
-              w.object.position.y = origPos.y + (Math.random() - 0.5) * 4
-              shakeCount++
-              if (shakeCount >= 6) {
-                window.clearInterval(shakeInterval)
-                w.object.position.x = origPos.x
-                w.object.position.y = origPos.y
-              }
-            }, 30)
-          } else {
-            w.object.userData.isWord = false
-            if (jet) {
-              jet.object.userData.kills =
-                (jet.object.userData.kills as number) + 1
-              const hud = this.nodes.find((h) => h.object.userData.isKillsHud)
-              if (hud) {
-                const child = hud.object.children[0] as Mesh<TextGeometry>
-                if (child && child.geometry) {
-                  const params = child.geometry.parameters
-                  if (params && params.options && params.options.font) {
-                    child.geometry.dispose()
-                    child.geometry = new TextGeometry(
-                      `Defeated: ${jet.object.userData.kills}`,
-                      { ...params.options, font: params.options.font }
-                    )
-                  }
-                }
-              }
-            }
-            const deathPos = w.object.position.clone()
-            spawnExplosion(this, deathPos)
-            new Tween({ z: deathPos.z, s: 1 }, this.tweenGroup)
-              .to({ z: deathPos.z - 200, s: 0.01 }, 500)
-              .easing(Easing.Quadratic.In)
-              .onUpdate(({ z, s }) => {
-                w.object.position.z = z
-                w.object.scale.setScalar(s)
-              })
-              .onComplete(() => {
-                spawnExplosion(this, deathPos)
-                this.removeNodeFromContentGroup(w)
-              })
-              .start()
-          }
-          break // Bullet consumed, move to next bullet
-        }
-      }
-    }
-
-    if (jet) {
-      // Animate aura ring
-      const aura = jet.object.children.find((c) => c.userData.isAura) as
-        | Mesh
-        | undefined
-      if (aura) {
-        aura.visible = jet.object.userData.immune as boolean
-        if (aura.visible) {
-          aura.rotation.z += 0.05
-          const pulse = 0.3 + Math.abs(Math.sin(Date.now() * 0.005)) * 0.4
-          ;(aura.material as MeshBasicMaterial).opacity = pulse
-        }
-      }
-
-      // Jet-word collision
-      for (const w of words) {
-        if (!w.object.userData.isWord) continue
-        const intersect = jet.bbox.intersectsBox(w.bbox)
-        if (intersect) {
-          if (jet.object.userData.immune) {
-            this.removeNodeFromContentGroup(w)
-            continue
-          }
-
-          this.removeNodeFromContentGroup(w)
-          jet.object.userData.lives -= 1
-
-          const lives = jet.object.userData.lives as number
-          const heart = this.nodes.find(
-            (h) =>
-              h.object.userData.isLifeHeart &&
-              h.object.userData.heartIndex === lives
-          )
-          if (heart) {
-            this.removeNodeFromContentGroup(heart)
-          }
-
-          spawnExplosion(this, jet.object.position.clone())
-          jet.object.visible = false
-          let flashCount = 0
-          const flashInterval = window.setInterval(() => {
-            jet!.object.visible = !jet!.object.visible
-            flashCount++
-            if (flashCount >= 6) {
-              window.clearInterval(flashInterval)
-              jet!.object.visible = true
-            }
-          }, 80)
-          this.addToActiveIntervals(flashInterval)
-
-          jet.object.userData.immune = true
-          const immuneTimeout = window.setTimeout(() => {
-            jet!.object.userData.immune = false
-          }, 1000)
-          this.addToActiveTimeouts(immuneTimeout)
-
-          if (jet.object.userData.lives <= 0) {
-            this.clearContentGroup()
-            this.switchContent('lose')
-            return
-          }
-        }
-      }
-
-      // Jet-powerup collision
-      for (const p of powerUps) {
-        if (jet.bbox.intersectsBox(p.bbox)) {
-          this.removeNodeFromContentGroup(p)
-          jet.object.userData.bulletCount =
-            (jet.object.userData.bulletCount as number) + 1
-        }
-      }
-
-      // Jet-shield collision
-      for (const s of shields) {
-        if (jet.bbox.intersectsBox(s.bbox)) {
-          this.removeNodeFromContentGroup(s)
-          jet.object.userData.immune = true
-          const shieldTimeout = window.setTimeout(() => {
-            jet!.object.userData.immune = false
-          }, 2000)
-          this.addToActiveTimeouts(shieldTimeout)
-        }
-      }
-
-      // Jet-heart collision
-      for (const h of heartDrops) {
-        if (jet.bbox.intersectsBox(h.bbox)) {
-          this.removeNodeFromContentGroup(h)
-          const lives = jet.object.userData.lives as number
-          if (lives < 3) {
-            const newIndex = lives
-            jet.object.userData.lives = lives + 1
-            const geo = jet.object.userData.heartGeo as ExtrudeGeometry
-            if (geo) {
-              const heartMesh = new Mesh(
-                geo.clone(),
-                new MeshBasicMaterial({ color: 0xff0000 })
-              )
-              const heartNode = new ThreeDNode(heartMesh)
-              heartNode.object.userData = {
-                isLifeHeart: true,
-                heartIndex: newIndex
-              }
-              heartNode.object.position.set(
-                -PLANE_WIDTH / 2 + 20 + newIndex * 20,
-                PLANE_HEIGHT - 10,
-                0
-              )
-              this.addToContentGroup(heartNode)
-            }
-          }
-        }
-      }
-    }
-  }
-
   restartJetGame() {
     this.clearContentGroup()
     this.switchContent(5)
@@ -1062,7 +1066,7 @@ export default class Viewport {
         overClickable = true
       }
     })
-    const cursor = overClickable ? 'pointer' : ''
+    const cursor = overClickable ? 'pointer' : this.idleCursor
     const style = this.renderer.domElement.style
     if (style.cursor !== cursor) style.cursor = cursor
   }
@@ -1090,7 +1094,6 @@ export default class Viewport {
     this.animateName()
     this.animateDolphins()
     this.animteRotatingCube()
-    this.jetGameLogic()
 
     this.orbitControls.update()
     // this.spotLightHelper.update()
@@ -1109,6 +1112,8 @@ export default class Viewport {
   dispose() {
     this._disposed = true
     cancelAnimationFrame(this._rafId)
+    this.listeners.abort()
+    window.clearTimeout(this.relayoutTimeout)
     this.clearContentCleanups()
     this.clearActiveIntervals()
     this.clearActiveTimeouts()

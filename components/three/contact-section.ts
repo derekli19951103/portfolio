@@ -1,13 +1,11 @@
 import { Easing, Tween } from '@tweenjs/tween.js'
-import { PLANE_HEIGHT, PLANE_WIDTH } from 'constant'
+import { PLANE_HEIGHT } from 'constant'
 import { createTranslationAnimation } from 'engine/animations/text-animations'
-import { TransparentBox } from 'engine/objects/TransparentBox'
-import { createWireframeText } from 'engine/objects/WireframeText'
+import { createHackedText } from 'engine/objects/HackedText'
 import ThreeDNode from 'engine/ThreeDNode'
 import {
   AdditiveBlending,
   Mesh,
-  MeshBasicMaterial,
   MeshStandardMaterial,
   PlaneGeometry,
   TextureLoader
@@ -27,9 +25,11 @@ const links = [
     y: PLANE_HEIGHT / 2 - 40
   }
 ]
-const ICON_X = -PLANE_WIDTH / 2 + 60
-// URLs start just right of their icons, so both rows line up
-const TEXT_LEFT = ICON_X + 30
+// Each row is its icon with a hacked-looking ">REDIRECT" beside it, centred,
+// narrow enough for a phone held upright
+const ICON_SIZE = 40
+const GAP = 12
+const TEXT_SIZE = 7
 
 // Opens on every click: selection toggles, so a plain handler skipped every
 // other one
@@ -43,17 +43,23 @@ const openOnClick = (node: ThreeDNode, url: string) => {
 }
 
 export const addContactContent = async (viewport: Viewport) => {
-  const font = await loadFont('/fonts/helvetiker_regular.typeface.json')
+  const font = await loadFont('/fonts/droid_sans_mono_regular.typeface.json')
 
   const nodes = links.flatMap(({ url, icon, y }, row) => {
     const delay = row * 180
+
+    const hacked = createHackedText(font, '>REDIRECT', { size: TEXT_SIZE })
+    const link = hacked.node
+    openOnClick(link, url)
+    const width = link.size.x
+    const left = -(ICON_SIZE + GAP + width) / 2
 
     // The icon flips in like a card. It glows by itself, since this tab has
     // no spotlight and the ambient light alone leaves it dim.
     const texture = new TextureLoader().load(icon)
     const pic = new ThreeDNode(
       new Mesh(
-        new PlaneGeometry(40, 40),
+        new PlaneGeometry(ICON_SIZE, ICON_SIZE),
         new MeshStandardMaterial({
           map: texture,
           emissive: 0xffffff,
@@ -64,7 +70,7 @@ export const addContactContent = async (viewport: Viewport) => {
       )
     )
     openOnClick(pic, url)
-    pic.object.position.set(ICON_X, y, 1)
+    pic.object.position.set(left + ICON_SIZE / 2, y, 1)
     pic.object.scale.setScalar(0.001)
     pic.object.rotation.y = -Math.PI
     new Tween(pic.object.scale, viewport.tweenGroup)
@@ -78,12 +84,9 @@ export const addContactContent = async (viewport: Viewport) => {
       .delay(delay)
       .start()
 
-    // The URL glides in from the right, out of the depth
-    const link = createWireframeText(font, url, { size: 8 })
-    link.object.add(TransparentBox(link))
-    openOnClick(link, url)
-    const width = link.size.x
-    const x = TEXT_LEFT + width / 2
+    // The text glides in from the right, out of the depth, decoding itself
+    // on the way. It glitches far more often while its row is hovered.
+    const x = left + ICON_SIZE + GAP + width / 2
     const start = { x: x + 60, y, z: 40 }
     link.object.position.set(start.x, start.y, start.z)
     link.object.visible = false
@@ -98,24 +101,14 @@ export const addContactContent = async (viewport: Viewport) => {
       .delay(delay + 120)
       .onStart(() => {
         link.object.visible = true
+        hacked.reveal(performance.now())
       })
       .start()
+    viewport.addContentFrame(() => {
+      hacked.update(performance.now(), pic.isRayCasted || link.isRayCasted)
+    })
 
-    // Then an underline draws itself left to right, marking it as a link
-    const underlineGeometry = new PlaneGeometry(width, 0.6)
-    underlineGeometry.translate(width / 2, 0, 0)
-    const underline = new ThreeDNode(
-      new Mesh(underlineGeometry, new MeshBasicMaterial())
-    )
-    underline.object.position.set(TEXT_LEFT, y - 7, 0.1)
-    underline.object.scale.set(0.001, 1, 1)
-    new Tween(underline.object.scale, viewport.tweenGroup)
-      .to({ x: 1 }, 500)
-      .easing(Easing.Cubic.Out)
-      .delay(delay + 550)
-      .start()
-
-    return [pic, link, underline]
+    return [pic, link]
   })
 
   viewport.addToContentGroup(...nodes)

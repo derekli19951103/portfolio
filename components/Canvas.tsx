@@ -2,7 +2,6 @@ import { PLANE_HEIGHT, PLANE_WIDTH } from 'constant'
 import { createStandardText } from 'engine/objects/StandardText'
 import { TransparentBox } from 'engine/objects/TransparentBox'
 import { useEffect, useRef } from 'react'
-import { useMediaQuery } from 'react-responsive'
 import { DoubleSide, Mesh, MeshBasicMaterial, PlaneGeometry } from 'three'
 import Stats from 'three/examples/jsm/libs/stats.module'
 import { loadFont } from '../engine/loaders/font-loader'
@@ -22,19 +21,11 @@ export const Canvas = () => {
   const { viewports, setViewports } = useViewports()
   const gl = viewports.viewport1
 
-  const isBigScreen = useMediaQuery({ query: '(min-width: 1824px)' })
-  const isTabletOrMobile = useMediaQuery({ query: '(max-width: 1224px)' })
-  const isPortrait = useMediaQuery({ query: '(orientation: portrait)' })
-
-  const addName = async (gl: Viewport, mobilePortrait: boolean) => {
+  // The viewport places the letters and hint for the screen's shape
+  const addName = async (gl: Viewport) => {
     const font = await loadFont('/fonts/helvetiker_regular.typeface.json')
     const frag = await (await fetch('/shaders/frag.glsl')).text()
     const vert = await (await fetch('/shaders/vert.glsl')).text()
-
-    const height = 15
-    const start = mobilePortrait ? -40 : -55
-    const gap = mobilePortrait ? 15 : 20
-    const nameScale = mobilePortrait ? 0.7 : 1
 
     const names = []
     const nameSeg = 'YUFENGLI'.split('')
@@ -55,11 +46,6 @@ export const Canvas = () => {
         nameIndex: i,
         hasTab: labels[i] !== ''
       }
-
-      const x = start + gap * (i > 5 ? i + 1 : i)
-      const y = height
-      seg.object.position.set(x, y, 0)
-      seg.object.scale.set(nameScale, nameScale, nameScale)
       seg.object.add(TransparentBox(seg))
 
       // Every label shows now, so they're smaller and L and I's lean apart
@@ -68,7 +54,10 @@ export const Canvas = () => {
       const labelMaterial = label.object.material as MeshBasicMaterial
       labelMaterial.transparent = true
       labelMaterial.opacity = 0
-      label.object.userData = { isNameLabelTag: true }
+      label.object.userData = {
+        isNameLabelTag: true,
+        restX: label.object.position.x
+      }
 
       seg.object.add(label.object)
       names.push(seg)
@@ -82,13 +71,10 @@ export const Canvas = () => {
       bandWidth: 4,
       lift: 1.1
     })
-    const first = names[0].object.position.x
-    const last = names[names.length - 1].object.position.x
-    hint.object.position.set((first + last) / 2, height + 28 * nameScale, 0)
-    hint.object.scale.setScalar(nameScale)
     hint.object.userData = { isHint: true }
 
     gl.add(...names, hint)
+    gl.placeName()
   }
 
   const addPlane = (gl: Viewport) => {
@@ -158,6 +144,7 @@ export const Canvas = () => {
     gl.add(...nodes)
   }
 
+  // Made once: the viewport refits itself when the screen turns or resizes
   useEffect(() => {
     if (canvasRef.current) {
       const isDev = process.env.NODE_ENV === 'development'
@@ -175,14 +162,7 @@ export const Canvas = () => {
 
       viewport.render()
 
-      const mobilePortrait = isTabletOrMobile && isPortrait
-      if (mobilePortrait) {
-        viewport.originalCameraPos.set(0, 30, 340)
-        viewport.facingCameraPos.set(0, PLANE_HEIGHT / 2, 280)
-        viewport.camera.position.copy(viewport.originalCameraPos)
-      }
-
-      addName(viewport, mobilePortrait)
+      addName(viewport)
       addPlane(viewport)
 
       addDolphins(viewport)
@@ -198,7 +178,7 @@ export const Canvas = () => {
         }
       }
     }
-  }, [isTabletOrMobile, isPortrait])
+  }, [])
 
   useEffect(() => {
     if (!gl) return

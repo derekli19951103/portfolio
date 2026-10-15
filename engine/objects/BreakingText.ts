@@ -62,7 +62,8 @@ export const createBreakingText = (
   geometry.setAttribute('displacement', new BufferAttribute(displacement, 3))
 
   const uniforms = {
-    amplitude: { value: 0.0 }
+    amplitude: { value: 0.0 },
+    flash: { value: 0.0 }
   }
 
   const shaderMaterial = new ShaderMaterial({
