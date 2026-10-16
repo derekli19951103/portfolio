@@ -15,6 +15,14 @@ import Viewport from '../../engine/Viewport'
 import { PLANE_HEIGHT } from 'constant'
 
 const LOGO_Y = PLANE_HEIGHT / 2 + 10
+const LOGO_WIDTH = 180
+const LOGO_HEIGHT = 60
+// The degree sits under the logo's wordmark
+const DEGREE = { x: 10, y: 30 }
+// Share of the screen's width the logo may take. A phone held upright sees
+// less than the logo's width, so there the logo and the degree shrink
+// together toward the logo's centre.
+const FILL = 0.9
 
 // The UofT logo, revealed left to right by a line of light
 const logoMaterial = (logo: Texture) =>
@@ -58,13 +66,17 @@ export const addEduContent = async (viewport: Viewport) => {
     reveal.start()
     rise.start()
   })
+  const seen = 2 * viewport.halfWidthAt(viewport.facingCameraPos.z)
+  const fit = Math.min(1, (FILL * seen) / LOGO_WIDTH)
+
   const material = logoMaterial(logo)
-  const mesh = new Mesh(new PlaneGeometry(180, 60), material)
+  const mesh = new Mesh(new PlaneGeometry(LOGO_WIDTH, LOGO_HEIGHT), material)
+  mesh.scale.setScalar(fit)
   const node = new ThreeDNode(mesh)
   const reveal = new Tween(material.uniforms.reveal, viewport.tweenGroup)
     .to({ value: 1.15 }, 1600)
     .easing(Easing.Cubic.InOut)
-  const start = { x: 0, y: LOGO_Y - 8, z: 1 }
+  const start = { x: 0, y: LOGO_Y - 8 * fit, z: 1 }
   node.object.position.set(start.x, start.y, start.z)
   const rise = createTranslationAnimation({
     object: node.object,
@@ -79,15 +91,20 @@ export const addEduContent = async (viewport: Viewport) => {
   const degree = createStandardText(font, 'B.Sc. in CS - 2019', {
     size: 10
   })
+  degree.object.scale.setScalar(fit)
 
   // The degree rises in as the reveal finishes
-  const degreeStart = { x: 10, y: 20, z: 30 }
+  const degreeAt = {
+    x: DEGREE.x * fit,
+    y: LOGO_Y + (DEGREE.y - LOGO_Y) * fit
+  }
+  const degreeStart = { x: degreeAt.x, y: degreeAt.y - 10 * fit, z: 30 }
   degree.object.position.set(degreeStart.x, degreeStart.y, degreeStart.z)
   degree.object.visible = false
   createTranslationAnimation({
     object: degree.object,
     start: degreeStart,
-    end: { x: 10, y: 30, z: 0 },
+    end: { ...degreeAt, z: 0 },
     easing: Easing.Cubic.Out,
     duration: 900,
     group: viewport.tweenGroup
