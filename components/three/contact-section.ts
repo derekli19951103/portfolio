@@ -54,8 +54,8 @@ export const addContactContent = async (viewport: Viewport) => {
     const width = link.size.x
     const left = -(ICON_SIZE + GAP + width) / 2
 
-    // The icon flips in like a card. It glows by itself, since this tab has
-    // no spotlight and the ambient light alone leaves it dim.
+    // The icon flips in like a card. It glows by itself, since the ambient
+    // light alone leaves it dim.
     const texture = new TextureLoader().load(icon)
     const pic = new ThreeDNode(
       new Mesh(

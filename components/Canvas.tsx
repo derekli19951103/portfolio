@@ -5,11 +5,9 @@ import { useEffect, useRef } from 'react'
 import { DoubleSide, Mesh, MeshBasicMaterial, PlaneGeometry } from 'three'
 import Stats from 'three/examples/jsm/libs/stats.module'
 import { loadFont } from '../engine/loaders/font-loader'
-import { loadObj } from '../engine/loaders/OBJLoader'
 import { createBreakingText } from '../engine/objects/BreakingText'
 import { createLightWaveText } from '../engine/objects/LightWaveText'
 import ThreeDNode from '../engine/ThreeDNode'
-import { getRandomPointInInterval } from '../engine/utils/math'
 import Viewport from '../engine/Viewport'
 import { useViewports } from '../store/viewports'
 
@@ -46,7 +44,11 @@ export const Canvas = () => {
         nameIndex: i,
         hasTab: labels[i] !== ''
       }
-      seg.object.add(TransparentBox(seg))
+      // The viewport widens it to fill the letter's slot on the landing
+      // view, so a slim letter (or the I) is still easy to tap
+      const hitBox = TransparentBox(seg)
+      hitBox.userData = { isHitBox: true }
+      seg.object.add(hitBox)
 
       // Every label shows now, so they're smaller and L and I's lean apart
       const label = createStandardText(font, labels[i], { size: 4.5 })
@@ -56,7 +58,8 @@ export const Canvas = () => {
       labelMaterial.opacity = 0
       label.object.userData = {
         isNameLabelTag: true,
-        restX: label.object.position.x
+        restX: label.object.position.x,
+        restY: label.object.position.y
       }
 
       seg.object.add(label.object)
@@ -96,54 +99,6 @@ export const Canvas = () => {
     gl.addPlane(node)
   }
 
-  const addDolphins = async (gl: Viewport) => {
-    const mesh = new Mesh()
-    const dolphin = await loadObj('/models/dolphin.obj')
-    mesh.add(dolphin)
-
-    mesh.scale.set(0.2, 0.2, 0.2)
-
-    const nodes = []
-
-    const generateRandom = (x: number, z: number) => {
-      const node = new ThreeDNode(mesh.clone())
-      node.object.position.set(x, 0, z)
-      node.object.rotation.x = Math.PI / 2 + Math.random() * 10
-      node.object.userData = {
-        isDolphin: true,
-        innateRotationSpeed: getRandomPointInInterval(2, 5) * 0.01
-      }
-      return node
-    }
-
-    for (let i = 0; i < 30; i++) {
-      nodes.push(
-        generateRandom(
-          getRandomPointInInterval(-1000, 1000),
-          getRandomPointInInterval(-1000, -50)
-        )
-      )
-    }
-    for (let i = 0; i < 10; i++) {
-      nodes.push(
-        generateRandom(
-          getRandomPointInInterval(200, 1000),
-          getRandomPointInInterval(0, 1000)
-        )
-      )
-    }
-    for (let i = 0; i < 10; i++) {
-      nodes.push(
-        generateRandom(
-          getRandomPointInInterval(-1000, -200),
-          getRandomPointInInterval(0, 1000)
-        )
-      )
-    }
-
-    gl.add(...nodes)
-  }
-
   // Made once: the viewport refits itself when the screen turns or resizes
   useEffect(() => {
     if (canvasRef.current) {
@@ -164,8 +119,6 @@ export const Canvas = () => {
 
       addName(viewport)
       addPlane(viewport)
-
-      addDolphins(viewport)
 
       setViewports({
         viewport1: viewport

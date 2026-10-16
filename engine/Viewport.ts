@@ -30,8 +30,6 @@ import {
   RepeatWrapping,
   Scene,
   ShaderMaterial,
-  SpotLight,
-  SpotLightHelper,
   SRGBColorSpace,
   TextureLoader,
   Vector2,
@@ -52,7 +50,6 @@ import { addProfileText } from '../components/three/profile-section'
 import { addToolsContent } from '../components/three/tools-section'
 import { OrbitControls } from '../engine/three/OrbitControls'
 import ThreeDNode from './ThreeDNode'
-import { CyberTrail } from './objects/CyberTrail'
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry'
 
 // One slow breath of the "click a letter" hint, in and out, and how long the
@@ -65,19 +62,79 @@ const HINT_WAVE_MS = 1400
 const NAME_Y = 15
 const NAV_Y = PLANE_HEIGHT + 15
 const NAV_SCALE = 0.91
+// On the landing view the letters tower: stretched taller and pulled
+// narrower, standing on the same baseline. A portrait screen has height to
+// spare and little width, so there they stretch further. They ease back to
+// their own shape as they become tabs.
+const TOWER = { tall: 2.6, slim: 0.6 }
+const NARROW_TOWER = { tall: 6.5, slim: 0.55 }
 // Share of the screen's width the name may fill
 const NAME_FILL = 0.94
+// A portrait screen spreads the name across this share of its width, the
+// letters spaced between these gaps to get there
+const NARROW_SPAN = 0.9
+const NARROW_GAP = { min: 8, max: 13 }
 // Below this the tabs are squeezed enough that their labels would collide
 const COMPACT_NAV = 0.8
+
+// The landing view looks up at the name from just over the water. The eye
+// never sinks below CAMERA_FLOOR, and rides up over a swell to stay
+// WATER_CLEARANCE above it.
+const CAMERA_FLOOR = 1.5
+const WATER_CLEARANCE = 3
+
+const WATER_SIZE = 10000
+const WATER_SEGMENTS = 40
+
+// How tall the swell runs, kept gentle so the low view isn't swamped
+const WAVE_SCALE = 0.4
+
+// The swell at a point on the water, in the water's own (unrotated) plane
+const waveHeight = (x: number, y: number, time: number) =>
+  WAVE_SCALE *
+  (Math.sin(x * 0.015 + time * 1.2) * 8 +
+    Math.sin(y * 0.02 + time * 1.8) * 6 +
+    Math.cos((x + y) * 0.012 + time * 0.8) * 5 +
+    Math.sin(x * 0.005 - time * 0.5) * 10 +
+    Math.cos(y * 0.008 + time * 1.0) * 4)
+
+// The water's surface height under a point in the scene, read off the same
+// triangles the mesh draws (the swell is only worked out at its vertices)
+const waterHeightAt = (x: number, z: number, time: number) => {
+  const step = WATER_SIZE / WATER_SEGMENTS
+  const half = WATER_SIZE / 2
+  // The water lies flat, so the scene's z runs along its -y
+  const gx = (x + half) / step
+  const gy = (half + z) / step
+  const ix = Math.floor(gx)
+  const iy = Math.floor(gy)
+  const u = gx - ix
+  const v = gy - iy
+  const x0 = ix * step - half
+  const yTop = half - iy * step
+  const a = waveHeight(x0, yTop, time)
+  const b = waveHeight(x0, yTop - step, time)
+  const c = waveHeight(x0 + step, yTop - step, time)
+  const d = waveHeight(x0 + step, yTop, time)
+  // Each cell is split along its b-d diagonal
+  return u + v <= 1
+    ? a + u * (d - a) + v * (b - a)
+    : c + (1 - u) * (b - c) + (1 - v) * (d - c)
+}
 
 // Each letter's place in the name, with a blank slot between YUFENG and LI
 const nameSlot = (i: number) => (i > 5 ? i + 1 : i)
 
-// Where a letter of the name sits, how big it is, and its label above it
+// Where a letter of the name sits, how big it is, how much taller and
+// narrower than its own shape it's stretched, how wide an area takes its
+// taps, and its label above it
 type NamePose = {
   x: number
   y: number
   scale: number
+  tall: number
+  slim: number
+  hitWidth: number
   labelScale: number
   labelX: number
 }
@@ -86,24 +143,25 @@ const nameLabel = (n: ThreeDNode) =>
   n.object.children.find((c) => c.userData.isNameLabelTag) as
     Mesh<TextGeometry, Material> | undefined
 
-const readPose = (n: ThreeDNode): NamePose => {
-  const label = nameLabel(n)
-  return {
-    x: n.object.position.x,
-    y: n.object.position.y,
-    scale: n.object.scale.x,
-    labelScale: label?.scale.x ?? 1,
-    labelX: label?.position.x ?? 0
-  }
-}
+// The pose is kept on the letter, since a stretched letter's scale no longer
+// says it on its own
+const readPose = (n: ThreeDNode): NamePose => n.object.userData.pose
 
 const setPose = (n: ThreeDNode, pose: NamePose) => {
+  n.object.userData.pose = pose
+  const { tall, slim } = pose
   n.object.position.set(pose.x, pose.y, 0)
-  n.object.scale.setScalar(pose.scale)
+  n.object.scale.set(pose.scale * slim, pose.scale * tall, pose.scale)
+  const hitBox = n.object.children.find((c) => c.userData.isHitBox)
+  if (hitBox) hitBox.scale.x = pose.hitWidth / (n.size.x * pose.scale * slim)
   const label = nameLabel(n)
   if (label) {
-    label.scale.setScalar(pose.labelScale)
-    label.position.x = pose.labelX
+    // Undo the stretch so the label keeps its shape, and lift it to stay
+    // the same height over the letter's top
+    label.scale.set(pose.labelScale / slim, pose.labelScale / tall, 1)
+    label.position.x = pose.labelX / slim
+    label.position.y =
+      (label.userData.restY + (n.size.y / 2) * (tall - 1)) / tall
   }
 }
 
@@ -111,6 +169,9 @@ const mixPose = (from: NamePose, to: NamePose, t: number): NamePose => ({
   x: MathUtils.lerp(from.x, to.x, t),
   y: MathUtils.lerp(from.y, to.y, t),
   scale: MathUtils.lerp(from.scale, to.scale, t),
+  tall: MathUtils.lerp(from.tall, to.tall, t),
+  slim: MathUtils.lerp(from.slim, to.slim, t),
+  hitWidth: MathUtils.lerp(from.hitWidth, to.hitWidth, t),
   labelScale: MathUtils.lerp(from.labelScale, to.labelScale, t),
   labelX: MathUtils.lerp(from.labelX, to.labelX, t)
 })
@@ -123,6 +184,13 @@ export default class Viewport {
   // Set for the screen's shape by setCameraPositions
   originalCameraPos = new Vector3()
   facingCameraPos = new Vector3()
+  // Where the landing view looks, above the name so the eye tilts up
+  landingTarget = new Vector3()
+  // Holds the camera, and lifts it over the swell without disturbing the
+  // orbit controls, which only move the camera within it
+  private cameraRig = new Group()
+  private cameraLift = 0
+  private waveTime = 0
   // A portrait screen, which sees the scene from further back
   narrow = false
 
@@ -141,19 +209,10 @@ export default class Viewport {
 
   raycaster: Raycaster = new Raycaster()
   pointer: Vector2 = new Vector2()
-  mouseWorldPos: Vector3 = new Vector3()
   // The cursor away from anything clickable; the game hides it, since there
   // the jet is the cursor
   idleCursor = ''
   private boardRay = new Vector3()
-  // The cursor's neon trail. It lives in its own scene, drawn after the
-  // grayscale and edge filters so it keeps its colour.
-  lightTrail: Group
-  private cursorTrail: CyberTrail
-  private overlay = new Scene()
-  private pointerMoved = false
-  mouseSpotLight: SpotLight
-  spotLightHelper: SpotLightHelper
 
   width: number
   height: number
@@ -232,29 +291,15 @@ export default class Viewport {
     this.camera.position.copy(this.originalCameraPos)
     const { signal } = this.listeners
 
-    this.scene.add(this.camera)
+    this.cameraRig.add(this.camera)
+    this.scene.add(this.cameraRig)
 
     const ambientLight = new AmbientLight(0xcccccc, 0.13)
     this.scene.add(ambientLight)
 
-    const mouseLightZHeight = 30
-    this.mouseSpotLight = new SpotLight(0xffffff, 50, 500, Math.PI / 2, 0, 1)
-    this.scene.add(this.mouseSpotLight)
-    this.mouseSpotLight.position.set(0, 0, mouseLightZHeight)
-    this.spotLightHelper = new SpotLightHelper(this.mouseSpotLight, 0x111111)
-    // this.scene.add(this.spotLightHelper);
-
     const onPointerMove = (x: number, y: number) => {
       this.pointer.x = (x / this.width) * 2 - 1
       this.pointer.y = -(y / this.height) * 2 + 1
-
-      const pos = this.toBoard(x, y, this.mouseWorldPos)
-      this.mouseSpotLight.position.set(pos.x, pos.y, pos.z + mouseLightZHeight)
-      this.mouseSpotLight.target.position.set(pos.x, pos.y, pos.z)
-      if (!this.pointerMoved) {
-        this.pointerMoved = true
-        this.cursorTrail.reset(this.mouseWorldPos)
-      }
     }
 
     canvas.addEventListener(
@@ -278,7 +323,7 @@ export default class Viewport {
 
     this.orbitControls = new OrbitControls(this.camera, canvas)
     this.orbitControls.listenToKeyEvents(canvas)
-    this.orbitControls.maxPolarAngle = Math.PI * 0.495
+    this.orbitControls.target.copy(this.landingTarget)
     this.orbitControls.minDistance = 80.0
     this.orbitControls.maxDistance = 350
     this.orbitControls.enablePan = false
@@ -294,7 +339,12 @@ export default class Viewport {
       '/textures/sky/nz.webp'
     ])
 
-    const waterGeometry = new PlaneGeometry(10000, 10000, 40, 40)
+    const waterGeometry = new PlaneGeometry(
+      WATER_SIZE,
+      WATER_SIZE,
+      WATER_SEGMENTS,
+      WATER_SEGMENTS
+    )
 
     this.water = new Water(waterGeometry, {
       textureWidth: 512,
@@ -368,14 +418,6 @@ export default class Viewport {
       this.ripplePool.push(ring)
     }
 
-    this.cursorTrail = new CyberTrail(
-      this.width,
-      this.height,
-      this.renderer.getPixelRatio()
-    )
-    this.lightTrail = this.cursorTrail.object
-    this.overlay.add(this.lightTrail)
-
     this.composer = new EffectComposer(this.renderer)
     const renderPass = new RenderPass(this.scene, this.camera)
 
@@ -416,7 +458,6 @@ export default class Viewport {
           const dpr = Math.min(window.devicePixelRatio, 2)
           this.effectSobel.uniforms['resolution'].value.x = this.width * dpr
           this.effectSobel.uniforms['resolution'].value.y = this.height * dpr
-          this.cursorTrail.setResolution(this.width, this.height)
           this.fitToScreen()
         }
       },
@@ -473,8 +514,6 @@ export default class Viewport {
         this.shownContent = undefined
 
         this.clearContentGroup()
-        this.lightTrail.visible = true
-        this.mouseSpotLight.visible = true
       }
     }
 
@@ -521,13 +560,16 @@ export default class Viewport {
     return target.copy(this.camera.position).addScaledVector(dir, distance)
   }
 
-  // A portrait screen sees the scene straight on and from further back
+  // The scene is seen straight on, the name from low down looking up; a
+  // portrait screen sees it from further back, so it tilts up more steeply
   private setCameraPositions() {
     if (this.narrow) {
-      this.originalCameraPos.set(0, 30, 340)
+      this.originalCameraPos.set(0, 2, 200)
+      this.landingTarget.set(0, 67, 0)
       this.facingCameraPos.set(0, PLANE_HEIGHT / 2, 280)
     } else {
-      this.originalCameraPos.set(-70, 30, 250)
+      this.originalCameraPos.set(0, 2, 90)
+      this.landingTarget.set(0, 35, 0)
       this.facingCameraPos.set(0, PLANE_HEIGHT / 2, 220)
     }
   }
@@ -540,10 +582,11 @@ export default class Viewport {
     if (narrow !== this.narrow) {
       this.narrow = narrow
       this.setCameraPositions()
-      if (!this.moving) {
-        this.camera.position.copy(
-          this.raised ? this.facingCameraPos : this.originalCameraPos
-        )
+      if (!this.moving && this.raised) {
+        this.camera.position.copy(this.facingCameraPos)
+      } else if (!this.moving) {
+        this.camera.position.copy(this.originalCameraPos)
+        this.orbitControls.target.copy(this.landingTarget)
       }
     }
     if (!this.moving) this.placeName()
@@ -579,31 +622,41 @@ export default class Viewport {
       .sort((a, b) => a.object.userData.nameIndex - b.object.userData.nameIndex)
   }
 
-  // Spread along the water under the hint. A narrow screen sees it straight
-  // on, so it's centred there, packed closer, and shrunk if it still won't fit.
+  // Towering along the water under the hint, centred in front of the camera.
+  // A narrow screen spaces it to span most of the width, and it shrinks if
+  // it still won't fit.
   private landingPoses(letters: ThreeDNode[]): NamePose[] {
-    const pose = (x: number, scale: number, n: ThreeDNode) => ({
+    const { tall, slim } = this.narrow ? NARROW_TOWER : TOWER
+    const pose = (x: number, scale: number, pitch: number, n: ThreeDNode) => ({
       x,
-      y: NAME_Y,
+      // Stretched up from where its foot stood unstretched
+      y: NAME_Y + (n.size.y / 2) * (tall - 1) * scale,
       scale,
+      tall,
+      slim,
+      // Most of its slot, however slim the letter
+      hitWidth: 0.9 * pitch,
       labelScale: 1,
       labelX: nameLabel(n)?.userData.restX ?? 0
     })
-    if (!this.narrow) {
-      return letters.map((n, i) => pose(-55 + 20 * nameSlot(i), 1, n))
-    }
-
-    const gap = 15
-    const scale = 0.7
+    const scale = this.narrow ? 0.7 : 1
     const middle = nameSlot(letters.length - 1) / 2
-    const halfWidth =
-      middle * gap +
+    const endHalf =
       (Math.max(letters[0].size.x, letters[letters.length - 1].size.x) / 2) *
-        scale
-    const room = NAME_FILL * this.halfWidthAt(this.originalCameraPos.z)
-    const fit = Math.min(1, room / halfWidth)
+      slim *
+      scale
+    const seen = this.halfWidthAt(this.originalCameraPos.z)
+    const gap = this.narrow
+      ? MathUtils.clamp(
+          (NARROW_SPAN * seen - endHalf) / middle,
+          NARROW_GAP.min,
+          NARROW_GAP.max
+        )
+      : 14
+    const halfWidth = middle * gap + endHalf
+    const fit = Math.min(1, (NAME_FILL * seen) / halfWidth)
     return letters.map((n, i) =>
-      pose((nameSlot(i) - middle) * gap * fit, scale * fit, n)
+      pose((nameSlot(i) - middle) * gap * fit, scale * fit, gap * fit, n)
     )
   }
 
@@ -631,7 +684,16 @@ export default class Viewport {
       const label = nameLabel(n)
       const restX = label?.userData.restX ?? 0
       if (!compact || !label) {
-        return { x, y: NAV_Y, scale, labelScale: 1, labelX: restX }
+        return {
+          x,
+          y: NAV_Y,
+          scale,
+          tall: 1,
+          slim: 1,
+          hitWidth: n.size.x * scale,
+          labelScale: 1,
+          labelX: restX
+        }
       }
       const labelScale = 1 / fit
       // An empty label has an empty (inverted) bounding box
@@ -646,6 +708,9 @@ export default class Viewport {
         x,
         y: NAV_Y,
         scale,
+        tall: 1,
+        slim: 1,
+        hitWidth: n.size.x * scale,
         labelScale,
         labelX: (labelCentre - x) / scale
       }
@@ -664,9 +729,11 @@ export default class Viewport {
     if (hint) {
       const first = landing[0]
       const last = landing[landing.length - 1]
+      // Over the towering letters' tops
+      const rise = letters[0].size.y * (first.tall - 1)
       hint.object.position.set(
         (first.x + last.x) / 2,
-        NAME_Y + 28 * first.scale,
+        NAME_Y + (28 + rise) * first.scale,
         0
       )
       hint.object.scale.setScalar(first.scale)
@@ -767,7 +834,7 @@ export default class Viewport {
             (this.originalCameraPos.z - this.facingCameraPos.z) * elapsed
           this.orbitControls.target.y =
             this.facingCameraPos.y +
-            (this.originalCameraPos.y - this.facingCameraPos.y) * elapsed
+            (this.landingTarget.y - this.facingCameraPos.y) * elapsed
         })
         .onComplete(() => {
           this.raised = false
@@ -809,8 +876,8 @@ export default class Viewport {
             this.originalCameraPos.z +
             (this.facingCameraPos.z - this.originalCameraPos.z) * elapsed
           this.orbitControls.target.y =
-            this.originalCameraPos.y +
-            (this.facingCameraPos.y - this.originalCameraPos.y) * elapsed
+            this.landingTarget.y +
+            (this.facingCameraPos.y - this.landingTarget.y) * elapsed
         })
         .onComplete(() => {
           this.raised = true
@@ -851,7 +918,7 @@ export default class Viewport {
           // anything over about 0.3 opacity full white, so rest stays low.
           // Tabs squeezed onto a narrow screen keep their labels full size,
           // which would collide, so there only the lit one shows.
-          const rest = label.scale.x > 1 ? 0 : 0.12
+          const rest = readPose(n).labelScale > 1 ? 0 : 0.12
           const target = active ? 1 : n === shimmering ? 0.35 : rest
           label.material.opacity += (target - label.material.opacity) * 0.15
         }
@@ -885,12 +952,32 @@ export default class Viewport {
     hint.object.visible = !this.hintDismissed || uniforms.fade.value > 0.01
   }
 
-  animateDolphins() {
-    this.nodes.forEach((n) => {
-      if (n.object.userData.isDolphin) {
-        n.object.rotation.x += n.object.userData.innateRotationSpeed
-      }
-    })
+  // Lets the low landing view orbit no lower than the floor, and lifts the
+  // camera over a swell that would otherwise wash over it. It rises at once
+  // and settles back gently, like riding the wave.
+  private keepCameraAboveWater() {
+    const eye = this.camera.position
+    const target = this.orbitControls.target
+    this.orbitControls.maxPolarAngle =
+      this.raised && !this.moving
+        ? Math.PI * 0.495
+        : Math.acos(
+            MathUtils.clamp(
+              (CAMERA_FLOOR - target.y) / eye.distanceTo(target),
+              -1,
+              1
+            )
+          )
+
+    const needed = Math.max(
+      0,
+      waterHeightAt(eye.x, eye.z, this.waveTime) + WATER_CLEARANCE - eye.y
+    )
+    this.cameraLift = Math.max(
+      needed,
+      MathUtils.lerp(this.cameraLift, needed, 0.05)
+    )
+    this.cameraRig.position.y = this.cameraLift
   }
 
   animteRotatingCube() {
@@ -904,18 +991,11 @@ export default class Viewport {
 
   animateWaves() {
     const time = Date.now() * 0.001
+    this.waveTime = time
     const geometry = (this.water as unknown as Mesh).geometry
     const position = geometry.getAttribute('position')
     for (let i = 0; i < position.count; i++) {
-      const x = position.getX(i)
-      const y = position.getY(i)
-      const z =
-        Math.sin(x * 0.015 + time * 1.2) * 8 +
-        Math.sin(y * 0.02 + time * 1.8) * 6 +
-        Math.cos((x + y) * 0.012 + time * 0.8) * 5 +
-        Math.sin(x * 0.005 - time * 0.5) * 10 +
-        Math.cos(y * 0.008 + time * 1.0) * 4
-      position.setZ(i, z)
+      position.setZ(i, waveHeight(position.getX(i), position.getY(i), time))
     }
     position.needsUpdate = true
     geometry.computeVertexNormals()
@@ -975,11 +1055,6 @@ export default class Viewport {
     }
   }
 
-  animateLightTrail() {
-    // Nothing to trail until the cursor has appeared over the canvas
-    if (this.pointerMoved) this.cursorTrail.update(this.mouseWorldPos)
-  }
-
   addToActiveIntervals(...numbers: number[]) {
     this.activeIntervals.push(...numbers)
   }
@@ -1000,17 +1075,13 @@ export default class Viewport {
 
   switchContent(nameIndex?: number | string) {
     this.shownContent = nameIndex
-    this.mouseSpotLight.visible = true
     this.orbitControls.enableRotate = true
-    this.lightTrail.visible = true
     this.clearActiveIntervals()
     switch (nameIndex) {
       case 0:
         addProfileText(this)
         break
       case 1:
-        // The logo tears around the cursor instead of being spotlit
-        this.mouseSpotLight.visible = false
         addEduContent(this)
         break
       case 2:
@@ -1020,9 +1091,7 @@ export default class Viewport {
         addToolsContent(this)
         break
       case 5:
-        this.mouseSpotLight.visible = false
         this.orbitControls.enableRotate = false
-        this.lightTrail.visible = false
         this.camera.position.copy(this.facingCameraPos)
         addGameCountdown(this)
         this.addToActiveTimeouts(
@@ -1032,17 +1101,13 @@ export default class Viewport {
         )
         break
       case 6:
-        this.mouseSpotLight.visible = false
         addContactContent(this)
         break
       case 7:
-        this.mouseSpotLight.visible = false
         addResumeContent(this)
         break
       case 'lose':
-        this.mouseSpotLight.visible = false
         this.orbitControls.enableRotate = false
-        this.lightTrail.visible = false
         this.camera.position.copy(this.facingCameraPos)
         addGameOver(this)
     }
@@ -1079,7 +1144,6 @@ export default class Viewport {
     this.animateWaves()
     this.animateSnow()
     this.animateRipples()
-    this.animateLightTrail()
 
     this.nodes.forEach((n) => n.update())
     this.updateHover()
@@ -1092,18 +1156,12 @@ export default class Viewport {
     })
 
     this.animateName()
-    this.animateDolphins()
     this.animteRotatingCube()
 
+    this.keepCameraAboveWater()
     this.orbitControls.update()
-    // this.spotLightHelper.update()
 
     this.composer.render()
-    // The cursor trail goes on top, after the filters, so it keeps its colour
-    this.renderer.autoClear = false
-    this.renderer.clearDepth()
-    this.renderer.render(this.overlay, this.camera)
-    this.renderer.autoClear = true
     if (!this._disposed) {
       this._rafId = requestAnimationFrame(this.render.bind(this))
     }
@@ -1118,18 +1176,16 @@ export default class Viewport {
     this.clearActiveIntervals()
     this.clearActiveTimeouts()
 
-    ;[this.scene, this.overlay].forEach((scene) =>
-      scene.traverse((obj) => {
-        if (obj instanceof Mesh || obj instanceof Points) {
-          obj.geometry?.dispose()
-          if (Array.isArray(obj.material)) {
-            obj.material.forEach((m) => m.dispose())
-          } else {
-            obj.material?.dispose()
-          }
+    this.scene.traverse((obj) => {
+      if (obj instanceof Mesh || obj instanceof Points) {
+        obj.geometry?.dispose()
+        if (Array.isArray(obj.material)) {
+          obj.material.forEach((m) => m.dispose())
+        } else {
+          obj.material?.dispose()
         }
-      })
-    )
+      }
+    })
 
     this.composer.dispose()
     this.renderer.dispose()

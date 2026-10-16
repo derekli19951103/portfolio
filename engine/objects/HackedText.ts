@@ -10,7 +10,7 @@ import { Font } from 'three/examples/jsm/loaders/FontLoader'
 import ThreeDNode from '../ThreeDNode'
 
 // What a scrambled letter flickers through
-const NOISE = '#$%&@!?<>/\\|{}[]=+*01ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+export const NOISE = '#$%&@!?<>/\\|{}[]=+*01ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 // Scrambled letters change this often, and a glitch jolts the word as often
 const FLICKER_MS = 50
 // Letters type in this far apart, scrambled, then lock in left to right
