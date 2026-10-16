@@ -11,6 +11,11 @@ import ThreeDNode from '../engine/ThreeDNode'
 import Viewport from '../engine/Viewport'
 import { useViewports } from '../store/viewports'
 
+// A trial of another way to get Safari to draw the scene under its toolbars,
+// switched on with ?edge=fixed (see .edge-fixed in globals.css)
+const edgeFixed =
+  new URLSearchParams(window.location.search).get('edge') === 'fixed'
+
 export const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -28,10 +33,10 @@ export const Canvas = () => {
     const names = []
     const nameSeg = 'YUFENGLI'.split('')
     const labels = [
-      'Myself',
+      'Me',
       'Edu',
       'Ask',
-      'Techs',
+      'Tech',
       '',
       'Game',
       'Links',
@@ -156,7 +161,7 @@ export const Canvas = () => {
         }
        
       `}</style>
-      <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
+      <div className={edgeFixed ? 'stage edge-fixed' : 'stage'}>
         <nav style={{ position: 'absolute' }}>
           <div ref={statsRef} className="statsContainer" />
         </nav>

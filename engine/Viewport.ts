@@ -248,6 +248,7 @@ export default class Viewport {
   private _disposed: boolean = false
   // Removes every listener the viewport added, so a disposed one goes quiet
   private listeners = new AbortController()
+  private resizeObserver?: ResizeObserver
   // The width the open tab was laid out for, and the pending re-layout
   private laidOutWidth: number
   private relayoutTimeout = 0
@@ -274,13 +275,15 @@ export default class Viewport {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     this.renderer.toneMapping = ACESFilmicToneMapping
 
-    this.width = width || window.innerWidth
-    this.height = height || window.innerHeight
+    // The stylesheet sizes the canvas: on an iPhone it runs on under
+    // Safari's see-through toolbars, past what window.innerHeight counts
+    this.width = width || canvas.clientWidth || window.innerWidth
+    this.height = height || canvas.clientHeight || window.innerHeight
     if (width && height) {
       this.fixed = true
     }
 
-    this.renderer.setSize(this.width, this.height)
+    this.renderer.setSize(this.width, this.height, this.fixed)
 
     this.narrow = this.width < this.height
     this.setCameraPositions()
@@ -425,10 +428,8 @@ export default class Viewport {
 
     this.effectSobel = new ShaderPass(SobelOperatorShader)
     const cappedDpr = Math.min(window.devicePixelRatio, 2)
-    this.effectSobel.uniforms['resolution'].value.x =
-      window.innerWidth * cappedDpr
-    this.effectSobel.uniforms['resolution'].value.y =
-      window.innerHeight * cappedDpr
+    this.effectSobel.uniforms['resolution'].value.x = this.width * cappedDpr
+    this.effectSobel.uniforms['resolution'].value.y = this.height * cappedDpr
 
     const bloomPass = new UnrealBloomPass(
       new Vector2(this.width, this.height),
@@ -442,27 +443,12 @@ export default class Viewport {
     this.composer.addPass(this.effectSobel)
     this.composer.addPass(bloomPass)
 
-    window.addEventListener(
-      'resize',
-      () => {
-        if (!this.fixed) {
-          this.width = window.innerWidth
-          this.height = window.innerHeight
-
-          this.camera.aspect = this.width / this.height
-          this.camera.updateProjectionMatrix()
-
-          this.renderer.setSize(this.width, this.height)
-          this.composer.setSize(this.width, this.height)
-
-          const dpr = Math.min(window.devicePixelRatio, 2)
-          this.effectSobel.uniforms['resolution'].value.x = this.width * dpr
-          this.effectSobel.uniforms['resolution'].value.y = this.height * dpr
-          this.fitToScreen()
-        }
-      },
-      { signal }
-    )
+    if (!this.fixed) {
+      this.resizeObserver = new ResizeObserver(() =>
+        this.resize(canvas.clientWidth, canvas.clientHeight)
+      )
+      this.resizeObserver.observe(canvas)
+    }
 
     canvas.addEventListener(
       'click',
@@ -572,6 +558,26 @@ export default class Viewport {
       this.landingTarget.set(0, 35, 0)
       this.facingCameraPos.set(0, PLANE_HEIGHT / 2, 220)
     }
+  }
+
+  // Follows the canvas as the stylesheet resizes it, when the screen turns
+  // or the window changes size
+  private resize(width: number, height: number) {
+    if (!width || !height) return
+    if (width === this.width && height === this.height) return
+    this.width = width
+    this.height = height
+
+    this.camera.aspect = width / height
+    this.camera.updateProjectionMatrix()
+
+    this.renderer.setSize(width, height, false)
+    this.composer.setSize(width, height)
+
+    const dpr = Math.min(window.devicePixelRatio, 2)
+    this.effectSobel.uniforms['resolution'].value.x = width * dpr
+    this.effectSobel.uniforms['resolution'].value.y = height * dpr
+    this.fitToScreen()
   }
 
   // Keeps the scene fitted when the screen turns or resizes. The open tab
@@ -1171,6 +1177,7 @@ export default class Viewport {
     this._disposed = true
     cancelAnimationFrame(this._rafId)
     this.listeners.abort()
+    this.resizeObserver?.disconnect()
     window.clearTimeout(this.relayoutTimeout)
     this.clearContentCleanups()
     this.clearActiveIntervals()

@@ -9,3 +9,45 @@ body {
 * {
   box-sizing: border-box;
 }
+
+/* The scene fills the screen. On iPhone and iPad (the only browsers that
+   know -webkit-touch-callout), Safari draws the page on under its
+   see-through toolbars, so there the canvas takes the large viewport's
+   height and runs on beneath them. Elsewhere it stops at the visible edge,
+   where a toolbar would cut it off. */
+.stage {
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+@supports (-webkit-touch-callout: none) {
+  .stage {
+    height: 100lvh;
+  }
+}
+
+.stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* A trial, switched on with ?edge=fixed: a short, full-width bar fixed to
+   the top, whose child runs the full height, is reported to get Safari 26
+   to paint under its toolbars (Apple Community thread 256138682) */
+.stage.edge-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: block;
+  width: 100vw;
+  height: 48px;
+  overflow: visible;
+}
+
+.stage.edge-fixed canvas {
+  height: 100vh;
+}
