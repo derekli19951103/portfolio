@@ -1,14 +1,18 @@
-/* Chat panel shown over the board on the Ask tab */
+/* Holds the chat on the board in the scene, which sizes and places it. The
+   panel hangs from its top edge, so the chat grows downward, and it isn't
+   shown from behind, where it would read backwards. */
+.ask-holder {
+  display: flex;
+  flex-direction: column;
+  backface-visibility: hidden;
+}
+
+/* Chat panel shown on the board on the Ask tab */
 .ask-panel {
-  position: fixed;
-  top: 34vh;
-  left: 50%;
-  z-index: 2;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: min(560px, calc(100vw - 32px));
-  max-height: 56vh;
+  max-height: 100%;
   padding: 14px 16px 12px;
   color: #fff;
   font-size: 15px;
@@ -17,18 +21,18 @@
   border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 10px;
   box-shadow: 0 0 24px rgba(255, 255, 255, 0.12);
-  transform: translateX(-50%);
+  pointer-events: auto;
   animation: ask-in 500ms ease-out 250ms both;
 }
 
 @keyframes ask-in {
   from {
     opacity: 0;
-    transform: translate(-50%, 12px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, 0);
+    transform: none;
   }
 }
 
@@ -169,8 +173,6 @@
 
 @media (max-width: 600px) {
   .ask-panel {
-    top: 38vh;
-    max-height: 54vh;
     font-size: 14px;
   }
 

@@ -121,7 +121,7 @@ const ask = async (
   notify()
 }
 
-export const mountAskPanel = () => {
+export const mountAskPanel = (parent: HTMLElement) => {
   const panel = create('section', 'ask-panel', {
     'aria-label': 'Ask about Derek'
   })
@@ -147,7 +147,7 @@ export const mountAskPanel = () => {
   )
   form.append(input, submit)
   panel.append(messages, chips, form, status)
-  document.body.append(panel)
+  parent.append(panel)
 
   let detected: Detected | undefined
   let model: ModelState = { status: 'idle' }

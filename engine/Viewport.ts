@@ -38,6 +38,10 @@ import {
 } from 'three'
 import Stats from 'three/examples/jsm/libs/stats.module'
 import { Water } from 'three/examples/jsm/objects/Water.js'
+import {
+  CSS3DObject,
+  CSS3DRenderer
+} from 'three/examples/jsm/renderers/CSS3DRenderer.js'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
@@ -248,6 +252,9 @@ export default class Viewport {
   private _disposed: boolean = false
   // Removes every listener the viewport added, so a disposed one goes quiet
   private listeners = new AbortController()
+  // HTML placed in the scene, drawn by the browser in a layer over the canvas
+  private htmlScene = new Scene()
+  private htmlRenderer = new CSS3DRenderer()
   private resizeObserver?: ResizeObserver
   // The width the open tab was laid out for, and the pending re-layout
   private laidOutWidth: number
@@ -284,6 +291,15 @@ export default class Viewport {
     }
 
     this.renderer.setSize(this.width, this.height, this.fixed)
+
+    // The HTML layer lets clicks through to the canvas, except on the HTML
+    const htmlLayer = this.htmlRenderer.domElement
+    htmlLayer.style.position = 'absolute'
+    htmlLayer.style.top = '0'
+    htmlLayer.style.left = '0'
+    htmlLayer.style.pointerEvents = 'none'
+    canvas.after(htmlLayer)
+    this.htmlRenderer.setSize(this.width, this.height)
 
     this.narrow = this.width < this.height
     this.setCameraPositions()
@@ -573,6 +589,7 @@ export default class Viewport {
 
     this.renderer.setSize(width, height, false)
     this.composer.setSize(width, height)
+    this.htmlRenderer.setSize(width, height)
 
     const dpr = Math.min(window.devicePixelRatio, 2)
     this.effectSobel.uniforms['resolution'].value.x = width * dpr
@@ -788,6 +805,15 @@ export default class Viewport {
     this.clearContentCleanups()
     this.contentFrames = []
     this.contentVersion++
+  }
+
+  // HTML laid in the scene with the tab's content, so it moves and tilts
+  // with the board, and taken away with the rest of the content. It's drawn
+  // straight away, which puts it in the page, so it can take focus.
+  addHtmlToContent(object: CSS3DObject) {
+    this.htmlScene.add(object)
+    this.addContentCleanup(() => this.htmlScene.remove(object))
+    this.htmlRenderer.render(this.htmlScene, this.camera)
   }
 
   addContentFrame(frame: () => void) {
@@ -1168,6 +1194,9 @@ export default class Viewport {
     this.orbitControls.update()
 
     this.composer.render()
+    if (this.htmlScene.children.length) {
+      this.htmlRenderer.render(this.htmlScene, this.camera)
+    }
     if (!this._disposed) {
       this._rafId = requestAnimationFrame(this.render.bind(this))
     }
@@ -1178,6 +1207,7 @@ export default class Viewport {
     cancelAnimationFrame(this._rafId)
     this.listeners.abort()
     this.resizeObserver?.disconnect()
+    this.htmlRenderer.domElement.remove()
     window.clearTimeout(this.relayoutTimeout)
     this.clearContentCleanups()
     this.clearActiveIntervals()
