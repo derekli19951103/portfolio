@@ -74,7 +74,7 @@ const fitLayout = (viewport: Viewport, widths: number[], pitch: number) => {
 }
 
 // Hidden until its turn, then glides into place
-const settle = (
+export const settle = (
   viewport: Viewport,
   node: ThreeDNode,
   end: { x: number; y: number },

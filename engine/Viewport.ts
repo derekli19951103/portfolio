@@ -6,6 +6,7 @@ import {
   addGameOver
 } from 'components/three/fighter-jet'
 import { addAskContent } from 'components/three/ask-section'
+import { addProjectContent } from 'components/three/project-section'
 import { addResumeContent } from 'components/three/resume-section'
 import {
   ACESFilmicToneMapping,
@@ -1121,6 +1122,9 @@ export default class Viewport {
         break
       case 3:
         addToolsContent(this)
+        break
+      case 4:
+        addProjectContent(this)
         break
       case 5:
         this.orbitControls.enableRotate = false

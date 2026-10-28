@@ -33,7 +33,7 @@ const TEXT_SIZE = 7
 
 // Opens on every click: selection toggles, so a plain handler skipped every
 // other one
-const openOnClick = (node: ThreeDNode, url: string) => {
+export const openOnClick = (node: ThreeDNode, url: string) => {
   node.object.userData = { isLink: true }
   node.onSelected = (selected) => {
     if (!selected) return

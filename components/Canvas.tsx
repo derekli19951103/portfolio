@@ -32,22 +32,25 @@ export const Canvas = () => {
 
     const names = []
     const nameSeg = 'YUFENGLI'.split('')
+    // Each tab's label, and how far it leans off its letter. The labels are
+    // wider than the gaps between the towering letters, so neighbours lean
+    // apart to keep from touching: most of all around Project, the widest.
     const labels = [
-      'Me',
-      'Edu',
-      'Ask',
-      'Tech',
-      '',
-      'Game',
-      'Links',
-      'Resume'
+      { text: 'Me', lean: 0 },
+      { text: 'Edu', lean: -0.4 },
+      { text: 'Ask', lean: -2.7 },
+      { text: 'Tech', lean: -3.65 },
+      { text: 'Project', lean: 1.6 },
+      { text: 'Game', lean: 7.95 },
+      { text: 'Links', lean: -2.5 },
+      { text: 'Resume', lean: 2.5 }
     ]
     for (let i = 0; i < nameSeg.length; i++) {
       const seg = createBreakingText(font, frag, vert, nameSeg[i])
       seg.object.userData = {
         isName: true,
         nameIndex: i,
-        hasTab: labels[i] !== ''
+        hasTab: labels[i].text !== ''
       }
       // The viewport widens it to fill the letter's slot on the landing
       // view, so a slim letter (or the I) is still easy to tap
@@ -55,9 +58,9 @@ export const Canvas = () => {
       hitBox.userData = { isHitBox: true }
       seg.object.add(hitBox)
 
-      // Every label shows now, so they're smaller and L and I's lean apart
-      const label = createStandardText(font, labels[i], { size: 4.5 })
-      label.object.position.set(i === 6 ? -2.5 : i === 7 ? 2.5 : 0, 15, 0)
+      // Every label shows now, so they're smaller
+      const label = createStandardText(font, labels[i].text, { size: 4.5 })
+      label.object.position.set(labels[i].lean, 15, 0)
       const labelMaterial = label.object.material as MeshBasicMaterial
       labelMaterial.transparent = true
       labelMaterial.opacity = 0
